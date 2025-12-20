@@ -145,7 +145,7 @@ export class ElasticsearchConfig {
             const esUuid = segments[1];
             const esHost = `${esUuid}.${domain}`;
 
-            let kibanaHost = null;
+            let kibanaHost: string | null = null;
             if (segments.length > 2 && segments[2]) {
                 kibanaHost = `${segments[2]}.${domain}`;
             }
