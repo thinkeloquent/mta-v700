@@ -1,0 +1,32 @@
+{
+    "name": "brd-static-analysis-js",
+    "version": "0.1.0",
+    "description": "Automated Business Requirements Document (BRD) Generator using Static Analysis (JS Version)",
+    "main": "dist/index.js",
+    "bin": {
+        "brd-gen-js": "dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc",
+        "start": "ts-node src/index.ts",
+        "analyze": "ts-node src/index.ts generate"
+    },
+    "dependencies": {
+        "@babel/generator": "^7.23.0",
+        "@babel/parser": "^7.23.0",
+        "@babel/traverse": "^7.23.0",
+        "@babel/types": "^7.23.0",
+        "chalk": "^5.0.0",
+        "commander": "^11.0.0",
+        "globby": "^14.0.0",
+        "yaml": "^2.3.0"
+    },
+    "devDependencies": {
+        "@types/babel__generator": "^7.27.0",
+        "@types/babel__traverse": "^7.20.0",
+        "@types/node": "^20.0.0",
+        "ts-node": "^10.9.0",
+        "typescript": "^5.0.0"
+    },
+    "type": "module"
+}

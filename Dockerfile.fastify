@@ -1,0 +1,77 @@
+# Dockerfile.fastify - Node.js/Fastify applications
+# Multi-stage build for Node.js apps that serve frontends
+
+# Project root name
+ARG PROJECT_ROOT=mta-v600
+
+# Stage 1: Builder
+FROM node:22-slim AS builder
+
+ARG PROJECT_ROOT
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+WORKDIR /applications
+
+# Copy package files and workspace config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig*.json ./
+
+# Copy common configs
+COPY common/ ./common/
+
+# Copy JavaScript packages
+COPY packages_mjs/ ./packages_mjs/
+
+# Copy Fastify apps
+COPY fastify_apps/ ./fastify_apps/
+
+# Copy frontend apps (for building)
+COPY frontend_apps/ ./frontend_apps/
+
+# Install dependencies using pnpm
+RUN pnpm install --frozen-lockfile
+
+# Build all projects
+RUN pnpm build
+
+# Stage 2: Runtime
+FROM node:22-slim AS runtime
+
+ARG PROJECT_ROOT
+
+# Build arguments
+ARG BUILD_ID="local"
+ARG BUILD_VERSION="0.0.0-dev"
+ARG GIT_COMMIT="unknown"
+ARG VAULT_SECRET_FILE=""
+
+# Set environment variables from build args
+ENV BUILD_ID=${BUILD_ID}
+ENV BUILD_VERSION=${BUILD_VERSION}
+ENV GIT_COMMIT=${GIT_COMMIT}
+ENV VAULT_SECRET_FILE=${VAULT_SECRET_FILE}
+
+WORKDIR /applications
+
+# Create logs directory for runtime logging
+RUN mkdir -p /applications/logs
+
+# Copy built artifacts from builder
+COPY --from=builder /applications/fastify_apps ./fastify_apps
+COPY --from=builder /applications/frontend_apps ./frontend_apps
+COPY --from=builder /applications/common ./common
+COPY --from=builder /applications/packages_mjs ./packages_mjs
+COPY --from=builder /applications/node_modules ./node_modules
+COPY --from=builder /applications/package.json ./package.json
+COPY --from=builder /applications/tsconfig.json ./tsconfig.json
+
+# Expose default port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start server
+CMD ["node", "fastify_apps/main_entry/src/main.mjs"]

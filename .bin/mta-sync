@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+#
+# mta-sync - Sync packages from git submodules to relative folders
+#
+# Usage: .bin/mta-sync [--dry-run] [--verbose] [--symlink]
+#
+#   # Copy mode (default)
+#   .bin/mta-sync
+
+#   # Symlink mode
+#   .bin/mta-sync --symlink
+
+#   # Dry-run to preview
+#   .bin/mta-sync --symlink --dry-run
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Options
+DRY_RUN=false
+VERBOSE=false
+USE_SYMLINK=false
+
+for arg in "$@"; do
+    case $arg in
+        --dry-run)
+            DRY_RUN=true
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            ;;
+        --symlink|-s)
+            USE_SYMLINK=true
+            ;;
+        --help|-h)
+            echo "Usage: mta-sync [--dry-run] [--verbose] [--symlink]"
+            echo ""
+            echo "Sync packages from git submodules to packages_mjs and packages_py folders."
+            echo ""
+            echo "Options:"
+            echo "  --dry-run    Show what would be done without making changes"
+            echo "  --verbose    Show detailed output"
+            echo "  --symlink    Use symlinks instead of copying files"
+            echo "  --help       Show this help message"
+            exit 0
+            ;;
+    esac
+done
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+log_verbose() {
+    if $VERBOSE; then
+        echo -e "[DEBUG] $1"
+    fi
+}
+
+# ==============================================================================
+# PACKAGE DEFINITIONS
+# Add new packages here as the list grows
+# Format: "submodule_path:package_type:src_package_name:dest_package_name"
+#   - submodule_path: path under tools/packages/
+#   - package_type: mjs or py
+#   - src_package_name: name of folder in source packages_mjs or packages_py
+#   - dest_package_name: name of folder in destination packages_mjs or packages_py
+# ==============================================================================
+PACKAGES=(
+    # MJS packages
+    "app_yaml_config:mjs:app-yaml-config:app-yaml-config"
+    "vault-file:mjs:vault-file:vault-file"
+
+    # Python packages
+    "app_yaml_config:py:app_yaml_config:app_yaml_config"
+    "vault-file:py:vault_file:vault_file"
+)
+
+# ==============================================================================
+# SYNC LOGIC
+# ==============================================================================
+
+sync_package() {
+    local submodule_path="$1"
+    local package_type="$2"
+    local src_name="$3"
+    local dest_name="$4"
+
+    local src_dir="${ROOT_DIR}/tools/packages/${submodule_path}/packages_${package_type}/${src_name}"
+    local dest_dir="${ROOT_DIR}/packages_${package_type}/${dest_name}"
+
+    log_verbose "Checking: $src_dir"
+
+    if [[ ! -d "$src_dir" ]]; then
+        log_warn "Source not found: $src_dir"
+        return 1
+    fi
+
+    # Ensure parent destination directory exists
+    local dest_parent
+    dest_parent="$(dirname "$dest_dir")"
+    if [[ ! -d "$dest_parent" ]]; then
+        if $DRY_RUN; then
+            log_info "[DRY-RUN] Would create directory: $dest_parent"
+        else
+            mkdir -p "$dest_parent"
+            log_verbose "Created directory: $dest_parent"
+        fi
+    fi
+
+    local relative_src="tools/packages/${submodule_path}/packages_${package_type}/${src_name}"
+    local relative_dest="packages_${package_type}/${dest_name}"
+
+    if $USE_SYMLINK; then
+        # Symlink mode: create symlink from dest to src
+        log_info "Linking: ${relative_dest} -> ${relative_src}"
+
+        # Remove existing destination (file, dir, or symlink)
+        if [[ -e "$dest_dir" ]] || [[ -L "$dest_dir" ]]; then
+            if $DRY_RUN; then
+                log_info "[DRY-RUN] Would remove: $dest_dir"
+            else
+                rm -rf "$dest_dir"
+                log_verbose "Removed existing: $dest_dir"
+            fi
+        fi
+
+        # Create symlink
+        if $DRY_RUN; then
+            log_info "[DRY-RUN] Would create symlink: $dest_dir -> $src_dir"
+        else
+            ln -s "$src_dir" "$dest_dir"
+            log_verbose "Created symlink: $dest_dir -> $src_dir"
+        fi
+    else
+        # Remove existing symlink before rsync (prevents following into source)
+        if [[ -L "$dest_dir" ]]; then
+            if $DRY_RUN; then
+                log_info "[DRY-RUN] Would remove symlink before copy: $dest_dir"
+            else
+                rm -f "$dest_dir"
+                log_verbose "Removed existing symlink: $dest_dir"
+            fi
+        fi
+        # Rsync mode: copy files
+        log_info "Syncing: ${relative_src} -> ${relative_dest}"
+
+        # Build rsync command
+        local rsync_opts="-a --delete"
+
+        # Exclude test folders (test/ for mjs, tests/ for py)
+        rsync_opts="$rsync_opts --exclude=test/ --exclude=tests/"
+
+        if $VERBOSE; then
+            rsync_opts="$rsync_opts -v"
+        fi
+        if $DRY_RUN; then
+            rsync_opts="$rsync_opts --dry-run"
+        fi
+
+        # Use rsync for efficient copying
+        # shellcheck disable=SC2086
+        rsync $rsync_opts "$src_dir/" "$dest_dir/"
+    fi
+
+    return 0
+}
+
+main() {
+    log_info "Starting MTA package sync..."
+    log_verbose "Root directory: $ROOT_DIR"
+
+    if $DRY_RUN; then
+        log_warn "Running in dry-run mode - no changes will be made"
+    fi
+
+    if $USE_SYMLINK; then
+        log_info "Mode: symlink (packages will be symlinked to source)"
+    else
+        log_info "Mode: copy (packages will be copied via rsync)"
+    fi
+
+    local success_count=0
+    local fail_count=0
+
+    for package in "${PACKAGES[@]}"; do
+        IFS=':' read -r submodule_path package_type src_name dest_name <<< "$package"
+
+        if sync_package "$submodule_path" "$package_type" "$src_name" "$dest_name"; then
+            ((success_count++))
+        else
+            ((fail_count++))
+        fi
+    done
+
+    echo ""
+    log_info "Sync complete: $success_count succeeded, $fail_count failed"
+
+    if [[ $fail_count -gt 0 ]]; then
+        exit 1
+    fi
+}
+
+main

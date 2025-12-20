@@ -1,0 +1,5 @@
+packages:
+  - 'packages_mjs/*'
+  - 'fastify_apps/*'
+  - 'fastify_server'
+  - 'frontend_apps/*'

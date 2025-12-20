@@ -1,0 +1,27 @@
+[submodule "__STAGE__/mta-v500"]
+	path = __STAGE__/mta-v500
+	url = git@github.com:thinkeloquent/mta-v500.git
+[submodule "__STAGE__/mta-v600"]
+	path = __STAGE__/mta-v600
+	url = git@github.com:thinkeloquent/mta-v600.git
+[submodule "__STAGE__/discovery-ai-gemini-openai-compatibility"]
+	path = __STAGE__/discovery-ai-gemini-openai-compatibility
+	url = https://github.com/thinkeloquent/discovery-ai-gemini-openai-compatibility
+[submodule "__STAGE__/discovery-python-material-ui-rag"]
+	path = __STAGE__/discovery-python-material-ui-rag
+	url = https://github.com/thinkeloquent/discovery-python-material-ui-rag
+[submodule "__SPECS__/mta-SPECS"]
+	path = __SPECS__/mta-SPECS
+	url = git@github.com:thinkeloquent/mta-SPECS.git
+[submodule "tools/source-analyzers/tools-chunking-directory-mapping"]
+	path = tools/source-analyzers/tools-chunking-directory-mapping
+	url = git@github.com:carlosmarte/tools-chunking-directory-mapping.git
+[submodule "tools/source-analyzers/tools-conditional-logic-mapping"]
+	path = tools/source-analyzers/tools-conditional-logic-mapping
+	url = git@github.com:thinkeloquent/tools-conditional-logic-mapping.git
+[submodule "tools/packages/vault-file"]
+	path = tools/packages/vault-file
+	url = git@github.com:thinkeloquent/vault-file.git
+[submodule "tools/packages/app_yaml_config"]
+	path = tools/packages/app_yaml_config
+	url = https://github.com/thinkeloquent/mta_app_yaml_config

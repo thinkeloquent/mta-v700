@@ -1,0 +1,362 @@
+# Makefile.poetry
+# Poetry-based Python package management for development
+# This is the default workflow for local development with editable installs
+
+# Get the directory where Makefile is located (project root)
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
+# ============================================================================
+# PYTHONPATH Configuration
+# ============================================================================
+# Build PYTHONPATH with packages_py/*/src and fastapi_apps/*
+PYTHON_PATHS := $(shell for pkg in $(MAKEFILE_DIR)packages_py/*/src; do [ -d "$$pkg" ] && printf "%s:" "$$pkg"; done)
+PYTHON_PATHS := $(PYTHON_PATHS)$(shell for app in $(MAKEFILE_DIR)fastapi_apps/*/; do [ -d "$$app" ] && printf "%s:" "$$app"; done)
+# Remove trailing colon and export
+PYTHON_PATHS := $(PYTHON_PATHS:%:=%)
+export PYTHONPATH := $(PYTHON_PATHS):$(PYTHONPATH)
+
+# Use local .venv if it exists, otherwise use system Python
+VENV_DIR := $(MAKEFILE_DIR).venv
+PYTHON := $(if $(wildcard $(VENV_DIR)/bin/python),$(VENV_DIR)/bin/python,python)
+POETRY := poetry
+
+# Package directories
+PACKAGES_PY_DIR := packages_py
+FASTAPI_APPS_DIR := fastapi_apps
+
+# ============================================================================
+# SSL/TLS and Network Configuration
+# ============================================================================
+# Set these variables to configure SSL verification, proxy, and registry settings
+# Example: make -f Makefile.poetry SSL_VERIFY=false install
+#          make -f Makefile.poetry HTTPS_PROXY=http://proxy:8080 install
+
+# SSL verification (set to "false" to disable SSL verification)
+SSL_VERIFY ?= true
+
+# Certificate authority bundle path (optional)
+CA_BUNDLE ?=
+
+# Client certificate path (optional)
+CERT ?=
+
+# Proxy settings (optional)
+HTTP_PROXY ?=
+HTTPS_PROXY ?=
+NO_PROXY ?=
+
+# PyPI registry/index URL (optional, defaults to PyPI)
+PIP_INDEX_URL ?=
+PIP_TRUSTED_HOST ?=
+
+# Configure Poetry SSL and certificates based on configuration
+ifeq ($(SSL_VERIFY),false)
+    POETRY_CERTIFICATES_PYPI_CERT := false
+    PYTHONHTTPSVERIFY := 0
+    # Clear CA bundles to disable verification
+    CURL_CA_BUNDLE :=
+    REQUESTS_CA_BUNDLE :=
+    SSL_CERT_FILE :=
+endif
+ifdef CA_BUNDLE
+    REQUESTS_CA_BUNDLE := $(CA_BUNDLE)
+    SSL_CERT_FILE := $(CA_BUNDLE)
+    CURL_CA_BUNDLE := $(CA_BUNDLE)
+endif
+ifdef CERT
+    POETRY_CERTIFICATES_PYPI_CLIENT_CERT := $(CERT)
+endif
+
+# Set proxy variables if provided
+ifdef HTTP_PROXY
+    http_proxy := $(HTTP_PROXY)
+endif
+ifdef HTTPS_PROXY
+    https_proxy := $(HTTPS_PROXY)
+endif
+ifdef NO_PROXY
+    no_proxy := $(NO_PROXY)
+endif
+
+# Export all environment variables
+export POETRY_CERTIFICATES_PYPI_CERT POETRY_CERTIFICATES_PYPI_CLIENT_CERT PYTHONHTTPSVERIFY
+export REQUESTS_CA_BUNDLE SSL_CERT_FILE CURL_CA_BUNDLE
+export HTTP_PROXY http_proxy HTTPS_PROXY https_proxy NO_PROXY no_proxy
+
+.PHONY: help install install-dev lock update sync shell \
+        list outdated show add remove \
+        build-wheel publish-test publish clean \
+        venv venv-remove \
+        constraints constraints-lock sync-versions sync-subpackages
+
+help:
+	@echo "Poetry Package Management Commands"
+	@echo ""
+	@echo "Installation:"
+	@echo "  make -f Makefile.poetry install      - Install all dependencies (editable)"
+	@echo "  make -f Makefile.poetry install-dev  - Install with dev dependencies"
+	@echo "  make -f Makefile.poetry lock         - Update poetry.lock without installing"
+	@echo "  make -f Makefile.poetry update       - Update all dependencies"
+	@echo "  make -f Makefile.poetry sync         - Sync local packages to pyproject.toml"
+	@echo ""
+	@echo "Version Constraints (Root as Source of Truth):"
+	@echo "  make -f Makefile.poetry constraints       - Generate constraints.txt from poetry.lock"
+	@echo "  make -f Makefile.poetry constraints-lock  - Update lock then generate constraints.txt"
+	@echo "  make -f Makefile.poetry sync-versions     - Sync pyproject.toml versions to constraints.txt"
+	@echo "  make -f Makefile.poetry sync-subpackages  - Update sub-packages to use flexible versions"
+	@echo ""
+	@echo "Environment:"
+	@echo "  make -f Makefile.poetry shell        - Spawn shell in virtualenv"
+	@echo "  make -f Makefile.poetry venv         - Create/recreate virtualenv"
+	@echo "  make -f Makefile.poetry venv-remove  - Remove virtualenv"
+	@echo ""
+	@echo "Package Info:"
+	@echo "  make -f Makefile.poetry list         - List installed packages"
+	@echo "  make -f Makefile.poetry outdated     - Show outdated packages"
+	@echo "  make -f Makefile.poetry show PKG=x   - Show package details"
+	@echo ""
+	@echo "Package Management:"
+	@echo "  make -f Makefile.poetry add PKG=x    - Add a dependency"
+	@echo "  make -f Makefile.poetry remove PKG=x - Remove a dependency"
+	@echo ""
+	@echo "Build & Publish:"
+	@echo "  make -f Makefile.poetry build-wheel PKG=x  - Build wheel for package"
+	@echo "  make -f Makefile.poetry publish-test PKG=x - Publish to TestPyPI"
+	@echo "  make -f Makefile.poetry publish PKG=x      - Publish to PyPI"
+	@echo ""
+	@echo "Cleanup:"
+	@echo "  make -f Makefile.poetry clean        - Remove build artifacts"
+	@echo ""
+	@echo "SSL/Network Variables:"
+	@echo "  SSL_VERIFY=false                     - Disable SSL verification"
+	@echo "  CA_BUNDLE=/path/to/ca.crt            - Custom CA bundle"
+	@echo "  CERT=/path/to/client.crt             - Client certificate"
+	@echo "  HTTP_PROXY=http://proxy:8080         - HTTP proxy"
+	@echo "  HTTPS_PROXY=http://proxy:8080        - HTTPS proxy"
+	@echo "  NO_PROXY=localhost,127.0.0.1         - Proxy bypass list"
+	@echo ""
+	@echo "Local Packages:"
+	@for pkg in $$(find $(PACKAGES_PY_DIR) -maxdepth 1 -mindepth 1 -type d \
+		! -name "__pycache__" ! -name "*.egg-info" \
+		! -name "__STAGE__" ! -name "__SPECS__" ! -name "__REVIEW__" ! -name "__BACKUP__" \
+		-exec basename {} \; | sort); do \
+		echo "  - $$pkg"; \
+	done
+	@echo ""
+	@echo "Examples:"
+	@echo "  make -f Makefile.poetry SSL_VERIFY=false install"
+	@echo "  make -f Makefile.poetry HTTPS_PROXY=http://proxy:8080 install"
+	@echo "  make -f Makefile.poetry CA_BUNDLE=/etc/ssl/ca.crt install"
+	@echo "  make -f Makefile.poetry constraints  # Generate constraints.txt for pip"
+
+# ============================================================================
+# Installation
+# ============================================================================
+
+# Install all dependencies with editable local packages
+install:
+	@echo "Installing dependencies with Poetry..."
+	$(POETRY) install --no-root
+	@echo "Done! All local packages installed as editable."
+
+# Install with development dependencies
+install-dev:
+	@echo "Installing with dev dependencies..."
+	$(POETRY) install --no-root --with dev
+	@echo "Done!"
+
+# Update lock file without installing
+# Poetry 2.x: use --regenerate (replaces --no-update)
+lock:
+	@echo "Updating poetry.lock..."
+	$(POETRY) lock
+	@echo "Done!"
+
+# Update all dependencies to latest compatible versions
+update:
+	@echo "Updating all dependencies..."
+	$(POETRY) update
+	@echo "Done!"
+
+# Sync local packages to pyproject.toml (auto-discover new packages)
+sync:
+	@echo "Syncing local packages..."
+	@$(PYTHON) .bin/sync-poetry-local-packages.py
+	@echo "Running poetry lock..."
+	$(POETRY) lock
+	@echo "Done!"
+
+# ============================================================================
+# Version Constraints (Root as Source of Truth)
+# ============================================================================
+# These targets generate constraints.txt from Poetry's lock file.
+# Sub-packages can use flexible versions ("*" or ">=0") in their pyproject.toml
+# and reference -c constraints.txt when installing with pip.
+#
+# Workflow:
+#   1. Local dev: Poetry uses pyproject.toml as source of truth
+#   2. Cloud/CI: pip uses constraints.txt as source of truth
+#   3. Sub-packages: Use "*" for shared deps, constraints.txt pins actual versions
+
+# Constraints file location
+CONSTRAINTS_FILE := constraints.txt
+
+# Generate constraints.txt from poetry.lock (pinned versions for pip)
+# Usage: make -f Makefile.poetry constraints
+constraints:
+	@echo "Generating $(CONSTRAINTS_FILE) from poetry.lock..."
+	@$(PYTHON) .bin/sync-constraints.py
+	@echo "Done! Created $(CONSTRAINTS_FILE)"
+	@echo ""
+	@echo "Sub-packages can now use:"
+	@echo "  pip install -c $(CONSTRAINTS_FILE) -r requirements.txt"
+
+# Update poetry.lock and then generate constraints.txt
+# Usage: make -f Makefile.poetry constraints-lock
+constraints-lock: lock constraints
+	@echo "Lock updated and constraints.txt generated!"
+
+# Sync versions from pyproject.toml to constraints.txt (one-way sync)
+# This reads [tool.poetry.dependencies] and generates constraints.txt
+# Usage: make -f Makefile.poetry sync-versions
+sync-versions:
+	@echo "Syncing versions from pyproject.toml to $(CONSTRAINTS_FILE)..."
+	@$(PYTHON) .bin/sync-constraints.py --from-pyproject
+	@echo "Done!"
+
+# Update sub-packages to use flexible versions ("*") for root-defined dependencies
+# Sub-packages will inherit actual versions from constraints.txt at install time
+# Usage: make -f Makefile.poetry sync-subpackages
+# Usage: make -f Makefile.poetry sync-subpackages PKG=packages_py/fetch_client
+sync-subpackages:
+	@echo "Updating sub-packages to use flexible versions..."
+	@if [ -n "$(PKG)" ]; then \
+		$(PYTHON) .bin/sync-subpackage-versions.py --package $(PKG); \
+	else \
+		$(PYTHON) .bin/sync-subpackage-versions.py; \
+	fi
+	@echo ""
+	@echo "Remember to run 'make -f Makefile.poetry constraints' to update constraints.txt"
+
+# ============================================================================
+# Environment
+# ============================================================================
+
+# Spawn a shell in the virtualenv
+shell:
+	$(POETRY) shell
+
+# Create or recreate virtualenv
+venv:
+	@echo "Creating virtualenv..."
+	$(POETRY) env use python3.11.4
+	@echo "Virtualenv ready at $$($(POETRY) env info --path)"
+
+# Remove virtualenv
+venv-remove:
+	@echo "Removing virtualenv..."
+	$(POETRY) env remove --all
+	@echo "Done!"
+
+# ============================================================================
+# Package Info
+# ============================================================================
+
+# List installed packages
+list:
+	$(POETRY) show
+
+# Show outdated packages
+outdated:
+	$(POETRY) show --outdated
+
+# Show package details (usage: make show PKG=httpx)
+show:
+	@if [ -z "$(PKG)" ]; then \
+		echo "Usage: make -f Makefile.poetry show PKG=<package_name>"; \
+		exit 1; \
+	fi
+	$(POETRY) show $(PKG)
+
+# ============================================================================
+# Package Management
+# ============================================================================
+
+# Add a dependency (usage: make add PKG=requests)
+add:
+	@if [ -z "$(PKG)" ]; then \
+		echo "Usage: make -f Makefile.poetry add PKG=<package_name>"; \
+		exit 1; \
+	fi
+	$(POETRY) add $(PKG)
+
+# Remove a dependency (usage: make remove PKG=requests)
+remove:
+	@if [ -z "$(PKG)" ]; then \
+		echo "Usage: make -f Makefile.poetry remove PKG=<package_name>"; \
+		exit 1; \
+	fi
+	$(POETRY) remove $(PKG)
+
+# ============================================================================
+# Build & Publish (per-package)
+# ============================================================================
+
+# Build wheel for a specific package
+# Usage: make -f Makefile.poetry build-wheel PKG=provider_api_getters
+build-wheel:
+	@if [ -z "$(PKG)" ]; then \
+		echo "Usage: make -f Makefile.poetry build-wheel PKG=<package_name>"; \
+		echo "Available packages:"; \
+		for pkg in $$(find $(PACKAGES_PY_DIR) -maxdepth 1 -mindepth 1 -type d \
+			! -name "__pycache__" ! -name "*.egg-info" \
+			! -name "__STAGE__" ! -name "__SPECS__" ! -name "__REVIEW__" ! -name "__BACKUP__" \
+			-exec basename {} \; | sort); do \
+			echo "  - $$pkg"; \
+		done; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(PACKAGES_PY_DIR)/$(PKG)" ]; then \
+		echo "Error: Package '$(PKG)' not found in $(PACKAGES_PY_DIR)/"; \
+		exit 1; \
+	fi
+	@echo "Building wheel for $(PKG)..."
+	cd $(PACKAGES_PY_DIR)/$(PKG) && $(POETRY) build
+	@echo "Done! Wheel created in $(PACKAGES_PY_DIR)/$(PKG)/dist/"
+
+# Publish to TestPyPI (for testing)
+# Usage: make -f Makefile.poetry publish-test PKG=provider_api_getters
+publish-test:
+	@if [ -z "$(PKG)" ]; then \
+		echo "Usage: make -f Makefile.poetry publish-test PKG=<package_name>"; \
+		exit 1; \
+	fi
+	@echo "Publishing $(PKG) to TestPyPI..."
+	cd $(PACKAGES_PY_DIR)/$(PKG) && $(POETRY) publish --repository testpypi
+	@echo "Done! Package published to TestPyPI."
+
+# Publish to PyPI
+# Usage: make -f Makefile.poetry publish PKG=provider_api_getters
+publish:
+	@if [ -z "$(PKG)" ]; then \
+		echo "Usage: make -f Makefile.poetry publish PKG=<package_name>"; \
+		exit 1; \
+	fi
+	@echo "Publishing $(PKG) to PyPI..."
+	@echo "WARNING: This will publish to the public PyPI registry!"
+	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ]
+	cd $(PACKAGES_PY_DIR)/$(PKG) && $(POETRY) publish
+	@echo "Done! Package published to PyPI."
+
+# ============================================================================
+# Cleanup
+# ============================================================================
+
+# Remove build artifacts
+clean:
+	@echo "Cleaning Poetry build artifacts..."
+	@find $(PACKAGES_PY_DIR) -type d -name "dist" -exec rm -rf {} + 2>/dev/null || true
+	@find $(PACKAGES_PY_DIR) -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@echo "Done!"

@@ -1,0 +1,313 @@
+# Makefile.tools - Tools and testing utilities
+#
+# Usage:
+#   make -f Makefile.tools help
+#   make -f Makefile.tools test-provider-connection
+#   make -f Makefile.tools test-provider-connection-py
+#   make -f Makefile.tools test-provider-connection-node
+# Usage
+
+# # Run all client integration tests
+# make -f Makefile.tools test-provider-client
+
+# # Run Python client tests only
+# make -f Makefile.tools test-provider-client-py
+
+# # Run Node.js client tests only
+# make -f Makefile.tools test-provider-client-node
+
+# # Run specific provider (Python)
+# make -f Makefile.tools test-provider-client-py-gemini
+
+# # Run specific provider (Node.js)
+# make -f Makefile.tools test-provider-client-node-github
+
+# Or include from main Makefile:
+#   include Makefile.tools
+
+# Get the directory where Makefile is located (project root)
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
+# ============================================================================
+# PYTHONPATH Configuration
+# ============================================================================
+# Build PYTHONPATH with packages_py/*/src and fastapi_apps/*
+PYTHON_PATHS := $(shell for pkg in $(MAKEFILE_DIR)packages_py/*/src; do [ -d "$$pkg" ] && printf "%s:" "$$pkg"; done)
+PYTHON_PATHS := $(PYTHON_PATHS)$(shell for app in $(MAKEFILE_DIR)fastapi_apps/*/; do [ -d "$$app" ] && printf "%s:" "$$app"; done)
+# Remove trailing colon and export
+PYTHON_PATHS := $(PYTHON_PATHS:%:=%)
+export PYTHONPATH := $(PYTHON_PATHS):$(PYTHONPATH)
+
+# Use local .venv if it exists, otherwise use system Python
+VENV_DIR := $(MAKEFILE_DIR).venv
+PYTHON := $(if $(wildcard $(VENV_DIR)/bin/python),$(VENV_DIR)/bin/python,python)
+
+# Provider connection test directory
+PROVIDER_TEST_DIR := tools/testing/connection
+
+# All providers to test
+PROVIDERS := figma github jira confluence gemini openai saucelabs postgres redis
+
+.PHONY: help-tools \
+	test-provider-connection test-provider-connection-py test-provider-connection-node test-provider-connection-all \
+	test-provider-client test-provider-client-py test-provider-client-node test-provider-client-all \
+	test-provider-client-py-gemini test-provider-client-py-github test-provider-client-py-jira \
+	test-provider-client-py-confluence test-provider-client-py-figma test-provider-client-py-postgres \
+	test-provider-client-py-redis test-provider-client-py-saucelabs test-provider-client-py-elasticsearch \
+	test-provider-client-py-rally \
+	test-provider-client-node-gemini test-provider-client-node-github test-provider-client-node-jira \
+	test-provider-client-node-confluence test-provider-client-node-figma test-provider-client-node-postgres \
+	test-provider-client-node-redis test-provider-client-node-saucelabs test-provider-client-node-elasticsearch \
+	test-provider-client-node-rally
+
+help-tools:
+	@echo "Makefile.tools - Testing utilities"
+	@echo ""
+	@echo "Provider Connection Tests (Standalone - httpx/undici):"
+	@echo "  test-provider-connection       - Run all provider tests (Python + Node)"
+	@echo "  test-provider-connection-py    - Run Python provider tests only"
+	@echo "  test-provider-connection-node  - Run Node.js provider tests only"
+	@echo "  test-provider-connection-all   - Run all_providers test (both Python + Node)"
+	@echo ""
+	@echo "Provider Client Integration Tests (Internal Packages):"
+	@echo "  test-provider-client           - Run all client integration tests"
+	@echo "  test-provider-client-py        - Run Python client tests"
+	@echo "  test-provider-client-node      - Run Node.js client tests"
+	@echo "  test-provider-client-py-<name> - Test specific provider (Python)"
+	@echo "  test-provider-client-node-<name> - Test specific provider (Node.js)"
+	@echo ""
+	@echo "Providers: gemini, github, jira, confluence, figma, postgres, redis,"
+	@echo "           saucelabs, elasticsearch, rally"
+	@echo ""
+	@echo "Individual Standalone Tests (Python - httpx/):"
+	@echo "  test-provider-py-figma         - Test Figma connection"
+	@echo "  test-provider-py-github        - Test GitHub connection"
+	@echo "  test-provider-py-jira          - Test Jira connection"
+	@echo "  test-provider-py-confluence    - Test Confluence connection"
+	@echo "  test-provider-py-gemini        - Test Gemini connection"
+	@echo "  test-provider-py-openai        - Test OpenAI connection"
+	@echo "  test-provider-py-saucelabs     - Test SauceLabs connection"
+	@echo "  test-provider-py-postgres      - Test PostgreSQL connection"
+	@echo "  test-provider-py-redis         - Test Redis connection"
+	@echo ""
+	@echo "Individual Standalone Tests (Node.js - undici/):"
+	@echo "  test-provider-node-figma       - Test Figma connection"
+	@echo "  test-provider-node-github      - Test GitHub connection"
+	@echo "  ... (same pattern for all providers)"
+
+# =============================================================================
+# Python Provider Tests
+# =============================================================================
+
+test-provider-connection-py:
+	@echo "========================================"
+	@echo "Running Python Provider Connection Tests"
+	@echo "========================================"
+	@poetry run python $(PROVIDER_TEST_DIR)/all_providers.py
+
+# Individual Python provider tests
+test-provider-py-figma:
+	@poetry run python $(PROVIDER_TEST_DIR)/figma.py
+
+test-provider-py-github:
+	@poetry run python $(PROVIDER_TEST_DIR)/github.py
+
+test-provider-py-jira:
+	@poetry run python $(PROVIDER_TEST_DIR)/jira.py
+
+test-provider-py-confluence:
+	@poetry run python $(PROVIDER_TEST_DIR)/confluence.py
+
+test-provider-py-gemini:
+	@poetry run python $(PROVIDER_TEST_DIR)/gemini.py
+
+test-provider-py-openai:
+	@poetry run python $(PROVIDER_TEST_DIR)/openai.py
+
+test-provider-py-saucelabs:
+	@poetry run python $(PROVIDER_TEST_DIR)/saucelabs.py
+
+test-provider-py-postgres:
+	@poetry run python $(PROVIDER_TEST_DIR)/postgres.py
+
+test-provider-py-redis:
+	@poetry run python $(PROVIDER_TEST_DIR)/redis.py
+
+# =============================================================================
+# Node.js Provider Tests
+# =============================================================================
+
+test-provider-connection-node:
+	@echo "========================================"
+	@echo "Running Node.js Provider Connection Tests"
+	@echo "========================================"
+	@echo "NOTE: Requires 'pnpm build' to have been run first"
+	@echo ""
+	@node $(PROVIDER_TEST_DIR)/all_providers.mjs
+
+# Individual Node.js provider tests
+test-provider-node-figma:
+	@node $(PROVIDER_TEST_DIR)/figma.mjs
+
+test-provider-node-github:
+	@node $(PROVIDER_TEST_DIR)/github.mjs
+
+test-provider-node-jira:
+	@node $(PROVIDER_TEST_DIR)/jira.mjs
+
+test-provider-node-confluence:
+	@node $(PROVIDER_TEST_DIR)/confluence.mjs
+
+test-provider-node-gemini:
+	@node $(PROVIDER_TEST_DIR)/gemini.mjs
+
+test-provider-node-openai:
+	@node $(PROVIDER_TEST_DIR)/openai.mjs
+
+test-provider-node-saucelabs:
+	@node $(PROVIDER_TEST_DIR)/saucelabs.mjs
+
+test-provider-node-postgres:
+	@node $(PROVIDER_TEST_DIR)/postgres.mjs
+
+test-provider-node-redis:
+	@node $(PROVIDER_TEST_DIR)/redis.mjs
+
+# =============================================================================
+# Combined Tests
+# =============================================================================
+
+# Run all_providers test for both Python and Node
+test-provider-connection-all:
+	@echo "========================================"
+	@echo "Running All Provider Connection Tests"
+	@echo "========================================"
+	@echo ""
+	@echo "--- Python ---"
+	@poetry run python $(PROVIDER_TEST_DIR)/all_providers.py
+	@echo ""
+	@echo "--- Node.js ---"
+	@node $(PROVIDER_TEST_DIR)/all_providers.mjs
+
+# Run both Python and Node tests (alias for test-provider-connection-all)
+test-provider-connection: test-provider-connection-all
+
+# =============================================================================
+# Python Client Integration Tests (uses internal packages)
+# =============================================================================
+
+test-provider-client-py:
+	@echo "========================================"
+	@echo "Running Python Client Integration Tests"
+	@echo "========================================"
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/gemini.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/github.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/jira.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/confluence.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/figma.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/postgres.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/redis.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/saucelabs.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/elasticsearch.py
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/rally.py
+
+# Individual Python client integration tests
+test-provider-client-py-gemini:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/gemini.py
+
+test-provider-client-py-github:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/github.py
+
+test-provider-client-py-jira:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/jira.py
+
+test-provider-client-py-confluence:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/confluence.py
+
+test-provider-client-py-figma:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/figma.py
+
+test-provider-client-py-postgres:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/postgres.py
+
+test-provider-client-py-redis:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/redis.py
+
+test-provider-client-py-saucelabs:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/saucelabs.py
+
+test-provider-client-py-elasticsearch:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/elasticsearch.py
+
+test-provider-client-py-rally:
+	@poetry run python $(PROVIDER_TEST_DIR)/python-client/rally.py
+
+# =============================================================================
+# Node.js Client Integration Tests (uses internal packages)
+# =============================================================================
+
+test-provider-client-node:
+	@echo "========================================"
+	@echo "Running Node.js Client Integration Tests"
+	@echo "========================================"
+	@echo "NOTE: Requires 'pnpm build' to have been run first"
+	@echo ""
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/gemini.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/github.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/jira.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/confluence.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/figma.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/postgres.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/redis.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/saucelabs.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/elasticsearch.mjs
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/rally.mjs
+
+# Individual Node.js client integration tests
+test-provider-client-node-gemini:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/gemini.mjs
+
+test-provider-client-node-github:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/github.mjs
+
+test-provider-client-node-jira:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/jira.mjs
+
+test-provider-client-node-confluence:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/confluence.mjs
+
+test-provider-client-node-figma:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/figma.mjs
+
+test-provider-client-node-postgres:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/postgres.mjs
+
+test-provider-client-node-redis:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/redis.mjs
+
+test-provider-client-node-saucelabs:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/saucelabs.mjs
+
+test-provider-client-node-elasticsearch:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/elasticsearch.mjs
+
+test-provider-client-node-rally:
+	@node $(PROVIDER_TEST_DIR)/nodejs-client/rally.mjs
+
+# =============================================================================
+# Combined Client Integration Tests
+# =============================================================================
+
+test-provider-client-all:
+	@echo "========================================"
+	@echo "Running All Client Integration Tests"
+	@echo "========================================"
+	@echo ""
+	@echo "--- Python Client ---"
+	@$(MAKE) -f Makefile.tools test-provider-client-py
+	@echo ""
+	@echo "--- Node.js Client ---"
+	@$(MAKE) -f Makefile.tools test-provider-client-node
+
+# Run both Python and Node client tests (alias for test-provider-client-all)
+test-provider-client: test-provider-client-all

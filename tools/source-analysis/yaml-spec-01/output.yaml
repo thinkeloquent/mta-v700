@@ -1,0 +1,334 @@
+spec_version: 1.0.0
+generated_at: '2025-12-17T21:01:37.724020Z'
+generator: yaml-spec-generator v0.1.0
+package:
+  name: '@internal/vault-file'
+  path: /Users/Shared/autoload/mta-v700/__STAGE__/mta-v600/packages_mjs/vault-file
+  version: 0.1.0
+  dependencies:
+    dotenv: ^16.4.0
+    uuid: '*'
+    zod: ~3.22.0
+  components:
+    classes:
+      VaultValidationError:
+        file: src/core.ts
+        extends:
+        - Error
+        fields:
+          name:
+            default: '''VaultValidationError'''
+      VaultSerializationError:
+        file: src/core.ts
+        extends:
+        - Error
+        fields:
+          name:
+            default: '''VaultSerializationError'''
+      VaultHeader:
+        file: src/core.ts
+        fields:
+          id:
+            default: header?.id || uuidv4()
+          version:
+            default: header?.version || '1.0.0'
+          createdAt:
+            default: header?.createdAt || new Date().toISOString()
+          string:
+            type: any
+      VaultMetadata:
+        file: src/core.ts
+        fields:
+          data:
+            default: metadata?.data || {}
+      VaultPayload:
+        file: src/core.ts
+        fields:
+          content:
+            default: payload?.content
+        methods:
+          if:
+            parameters:
+              payload && typeof payload.content:
+                default: == 'number'
+                required: false
+      VaultFile:
+        file: src/core.ts
+        fields:
+          header:
+            default: new VaultHeader(header)
+          metadata:
+            default: new VaultMetadata(metadata)
+          payload:
+            default: new VaultPayload(payload)
+          any:
+            type: any
+          id:
+            type: ${this.header.id}`)
+          state:
+            type: ${error.message}`)
+          parsed:
+            default: JSON.parse(jsonStr)
+          schema:
+            type: ${error.message}`)
+        methods:
+          validateState: {}
+          catch:
+            parameters:
+              error:
+                type: any
+                required: true
+      EnvStore:
+        file: src/core.ts
+        fields:
+          instance:
+            type: any
+          values:
+            type: Map<string, string>
+            default: new Map()
+          initialized:
+            default: 'true'
+          loadResult:
+            default: '{ loaded: [], errors: [] }'
+          value:
+            type: any
+          result:
+            type: any
+          pattern:
+            default: '''.env*'', override = false } = options'
+          from:
+            type: ${location}`)
+          exist:
+            type: ${location}`)
+          file:
+            type: 'location, error: err.message })'
+          return:
+            type: any
+          stats:
+            default: await fs.stat(location)
+          content:
+            default: await fs.readFile(filePath, 'utf-8')
+          parsed:
+            default: dotenv.parse(content)
+          files:
+            default: await fs.readdir(location)
+          regex:
+            default: new RegExp('^' + pattern.replace(/\*/g, '.*') + '$')
+          filePath:
+            default: path.join(location, file)
+        methods:
+          if:
+            parameters:
+              override || process.env[key]:
+                default: == undefined
+                required: false
+          catch:
+            parameters:
+              err:
+                type: any
+                required: true
+          for:
+            parameters:
+              const file of envFiles:
+                required: true
+    singleton_classes:
+      EnvStore:
+        file: src/index.mjs
+        patterns:
+        - singleton
+        fields:
+          instance:
+            type: any
+          values:
+            default: new Map()
+          initialized:
+            default: 'true'
+          loadResult:
+            default: '{ loaded: [], errors: [] }'
+          value:
+            type: any
+          result:
+            type: any
+          pattern:
+            default: '''.env*'', override = false } = options'
+          from:
+            type: ${location}`)
+          exist:
+            type: ${location}`)
+          file:
+            type: 'location, error: err.message })'
+          return:
+            type: any
+          stats:
+            default: await fs.stat(location)
+          content:
+            default: await fs.readFile(filePath, 'utf-8')
+          parsed:
+            default: dotenv.parse(content)
+          files:
+            default: await fs.readdir(location)
+          regex:
+            default: new RegExp('^' + pattern.replace(/\*/g, '.*') + '$')
+          filePath:
+            default: path.join(location, file)
+        methods:
+          if:
+            parameters:
+              override || process.env[key]:
+                default: == undefined
+                required: false
+          getInstance:
+            static: true
+          get:
+            parameters:
+              key:
+                required: true
+          getOrThrow:
+            parameters:
+              key:
+                required: true
+          getAll: {}
+          isInitialized: {}
+          getLoadResult: {}
+          reset: {}
+          _loadFromLocation:
+            async: true
+            parameters:
+              options:
+                required: true
+          catch:
+            parameters:
+              err:
+                required: true
+          for:
+            parameters:
+              const file of envFiles:
+                required: true
+    functions:
+      on_startup:
+        async: true
+        parameters:
+          options:
+            required: true
+        file: src/index.mjs
+  exceptions:
+    VaultValidationError:
+      extends: Error
+      file: src/core.ts
+    VaultSerializationError:
+      extends: Error
+      file: src/core.ts
+  files:
+  - path: __mocks__/zod.ts
+    language: typescript
+    imports:
+    - from: zod
+      import:
+      - '*'
+    exports:
+    - z
+  - path: babel.config.mjs
+    language: javascript
+  - path: jest.config.mjs
+    language: javascript
+  - path: src/core.ts
+    language: typescript
+    summary:
+      classes: 7
+      functions: 1
+      exceptions: 2
+    imports:
+    - from: uuid
+      import:
+      - v4
+      - validate
+    - from: fs
+      import:
+      - promises
+      - existsSync
+    - from: path
+      import:
+      - default
+    - from: zod
+      import:
+      - z
+    - from: dotenv
+      import:
+      - '*'
+    exports:
+    - VaultValidationError
+    - VaultSerializationError
+    - logger
+    - VaultHeader
+    - VaultMetadata
+    - VaultPayload
+    - VaultFile
+    - env
+  - path: src/index.mjs
+    language: javascript
+    summary:
+      classes: 1
+      functions: 1
+    imports:
+    - from: fs
+      import:
+      - promises
+      - existsSync
+    - from: path
+      import:
+      - default
+    - from: dotenv
+      import:
+      - '*'
+    exports:
+    - EnvStore
+    - logger
+    - env
+  - path: tests/core-structure.test.ts
+    language: typescript
+    imports:
+    - from: ../src/core
+      import:
+      - VaultHeader
+      - VaultMetadata
+      - VaultPayload
+      - VaultFile
+      - VaultValidationError
+      - VaultSerializationError
+      - logger
+      - on_startup
+      - env
+      - OnStartupOptions
+      - ''
+    - from: uuid
+      import:
+      - v4
+      - validate
+    - from: fs
+      import:
+      - promises
+    - from: path
+      import:
+      - default
+    - from: os
+      import:
+      - default
+analysis_metadata:
+  statistics:
+    packages_analyzed: 1
+    files_analyzed: 6
+    classes_found: 8
+    functions_found: 2
+    exceptions_found: 2
+  languages:
+    typescript: 3
+    javascript: 3
+  tools_used:
+  - name: FileDiscovery
+    purpose: Scan directories for source files
+  - name: PythonAnalyzer
+    purpose: AST-based Python code analysis
+  - name: JavaScriptAnalyzer
+    purpose: JavaScript/TypeScript code analysis
+  - name: YamlSpecGenerator
+    purpose: Generate YAML specification

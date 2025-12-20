@@ -1,0 +1,653 @@
+spec_version: 1.0.0
+generated_at: '2025-12-17T21:03:00.266231Z'
+generator: yaml-spec-generator v0.1.0
+package:
+  name: vault-file
+  path: /Users/Shared/autoload/mta-v700/__STAGE__/mta-v600/packages_py/vault_file
+  version: 0.1.0
+  description: A module for creating, serializing, and managing vault files
+  dependencies:
+    python: ^3.9
+    python-dotenv: ^1.0
+    pytest: ^8.0
+    pytest-asyncio: ^0.24
+    pytest-cov: ^4.1
+    mypy: ^1.8
+    ruff: ^0.1
+  components:
+    dataclass_classes:
+      VaultHeader:
+        file: src/vault_file/core.py
+        description: Data class for the header of a vault file.
+        decorators:
+        - dataclass
+        patterns:
+        - dataclass
+        fields:
+          version:
+            type: str
+            default: '''1.0'''
+          created_at:
+            type: datetime
+            default: field(...)
+          id:
+            type: uuid.UUID
+            default: field(...)
+        methods:
+          to_dict:
+            returns: Dict[str, Any]
+      VaultMetadata:
+        file: src/vault_file/core.py
+        description: Data class for the metadata of a vault file.
+        decorators:
+        - dataclass
+        patterns:
+        - dataclass
+        fields:
+          data:
+            type: Dict[str, Any]
+            default: field(...)
+        methods:
+          to_dict:
+            returns: Dict[str, Any]
+      VaultPayload:
+        file: src/vault_file/core.py
+        description: Data class for the payload of a vault file.
+        decorators:
+        - dataclass
+        patterns:
+        - dataclass
+        fields:
+          data:
+            type: Any
+            default: None
+        methods:
+          to_dict:
+            returns: Dict[str, Any]
+      VaultFile:
+        file: src/vault_file/core.py
+        description: A class representing a vault file.
+        extends:
+        - IVaultFile
+        decorators:
+        - dataclass
+        patterns:
+        - dataclass
+        fields:
+          header:
+            type: VaultHeader
+            default: field(...)
+          metadata:
+            type: VaultMetadata
+            default: field(...)
+          payload:
+            type: VaultPayload
+            default: field(...)
+        methods:
+          to_json:
+            returns: str
+          from_json:
+            classmethod: true
+            parameters:
+              json_str:
+                type: str
+                required: true
+            returns: '''VaultFile'''
+            decorators:
+            - classmethod
+          save_to_disk:
+            parameters:
+              path:
+                type: str
+                required: true
+            returns: None
+          load_from_disk:
+            classmethod: true
+            parameters:
+              path:
+                type: str
+                required: true
+            returns: '''VaultFile'''
+            decorators:
+            - classmethod
+      LoadResult:
+        file: src/vault_file/env_store.py
+        description: Result of loading environment files.
+        decorators:
+        - dataclass
+        patterns:
+        - dataclass
+        fields:
+          files_loaded:
+            type: List[str]
+            default: field(...)
+          errors:
+            type: List[Dict[str, Any]]
+            default: field(...)
+          total_vars_loaded:
+            type: int
+            default: '0'
+      OnStartupOptions:
+        file: src/vault_file/env_store.py
+        description: Options for on_startup function.
+        decorators:
+        - dataclass
+        patterns:
+        - dataclass
+        fields:
+          location:
+            type: str
+          pattern:
+            type: str
+            default: '''.env*'''
+          override:
+            type: bool
+            default: 'False'
+    abstract_classes:
+      IVaultFile:
+        file: src/vault_file/core.py
+        description: Abstract base class for a vault file.
+        extends:
+        - ABC
+        patterns:
+        - abstract
+        methods:
+          to_json:
+            description: Serializes the vault file to a JSON string.
+            returns: str
+            decorators:
+            - abstractmethod
+          from_json:
+            description: Deserializes a JSON string to a vault file object.
+            classmethod: true
+            parameters:
+              json_str:
+                type: str
+                required: true
+            returns: '''IVaultFile'''
+            decorators:
+            - classmethod
+            - abstractmethod
+          save_to_disk:
+            description: Saves the vault file to disk.
+            parameters:
+              path:
+                type: str
+                required: true
+            returns: None
+            decorators:
+            - abstractmethod
+          load_from_disk:
+            description: Loads a vault file from disk.
+            classmethod: true
+            parameters:
+              path:
+                type: str
+                required: true
+            returns: '''IVaultFile'''
+            decorators:
+            - classmethod
+            - abstractmethod
+    singleton_classes:
+      EnvStore:
+        file: src/vault_file/env_store.py
+        description: Singleton store for environment variables loaded from .env files.
+        patterns:
+        - singleton
+        fields:
+          _instance:
+            type: Optional['EnvStore']
+            default: None
+          _initialized:
+            type: bool
+            default: 'False'
+        methods:
+          __new__:
+            returns: '''EnvStore'''
+          _load_file:
+            description: Load a single env file and return its parsed values.
+            parameters:
+              file_path:
+                type: Path
+                required: true
+              override:
+                type: bool
+                required: true
+            returns: Dict[str, str]
+          load:
+            description: Load environment variables from files at the given location.
+            parameters:
+              location:
+                type: str
+                required: true
+              pattern:
+                type: str
+                default: '''.env*'''
+                required: false
+              override:
+                type: bool
+                default: 'False'
+                required: false
+            returns: LoadResult
+          get:
+            description: Get an environment variable value.
+            parameters:
+              key:
+                type: str
+                required: true
+            returns: Optional[str]
+          get_or_throw:
+            description: Get an environment variable value or raise an error.
+            parameters:
+              key:
+                type: str
+                required: true
+            returns: str
+          get_all:
+            description: Get all loaded environment variables.
+            returns: Dict[str, str]
+          is_initialized:
+            description: Check if the store has been initialized.
+            returns: bool
+          get_load_result:
+            description: Get the result from the last load operation.
+            returns: Optional[LoadResult]
+          reset:
+            description: Clear the store and reset to uninitialized state.
+            returns: None
+    classes:
+      TestVaultFile:
+        file: tests_vault_file/test_core.py
+        extends:
+        - unittest.TestCase
+        methods:
+          test_round_trip_serialization:
+            description: Tests that a VaultFile object can be serialized to JSON and deserialized back
+          test_file_io:
+            description: Tests that a VaultFile object can be saved to and loaded from disk.
+          test_validation_error:
+            description: Tests that from_json raises VaultSerializationError for invalid data.
+      TestEnvStore:
+        file: tests_vault_file/test_env_store.py
+        methods:
+          test_singleton_pattern:
+            description: EnvStore should be a singleton.
+            parameters:
+              fresh_env_store:
+                required: true
+          test_initial_state:
+            description: EnvStore should start uninitialized.
+            parameters:
+              fresh_env_store:
+                required: true
+          test_load_single_file:
+            description: Should load a single env file.
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_single_env_file:
+                required: true
+          test_load_directory:
+            description: Should load all matching files from a directory.
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_env_dir:
+                required: true
+          test_load_nonexistent_path:
+            description: Should handle nonexistent paths gracefully.
+            parameters:
+              fresh_env_store:
+                required: true
+          test_get_returns_none_for_missing_key:
+            description: get() should return None for missing keys.
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_single_env_file:
+                required: true
+          test_get_or_throw_raises_for_missing_key:
+            description: get_or_throw() should raise for missing keys.
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_single_env_file:
+                required: true
+          test_get_or_throw_returns_value:
+            description: get_or_throw() should return value when key exists.
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_single_env_file:
+                required: true
+          test_get_all:
+            description: get_all() should return all loaded values.
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_single_env_file:
+                required: true
+          test_reset:
+            description: reset() should clear the store.
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_single_env_file:
+                required: true
+          test_custom_pattern:
+            description: Should respect custom glob patterns.
+            parameters:
+              fresh_env_store:
+                required: true
+      TestOnStartup:
+        file: tests_vault_file/test_env_store.py
+        methods:
+          test_on_startup_returns_env_store:
+            description: on_startup should return the EnvStore instance.
+            async: true
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_single_env_file:
+                required: true
+            decorators:
+            - pytest.mark.asyncio
+          test_on_startup_with_options:
+            description: on_startup should accept all options.
+            async: true
+            parameters:
+              fresh_env_store:
+                required: true
+              temp_env_dir:
+                required: true
+            decorators:
+            - pytest.mark.asyncio
+      TestGlobalEnv:
+        file: tests_vault_file/test_env_store.py
+        methods:
+          test_global_env_is_env_store:
+            description: Global env should be an EnvStore instance.
+    functions:
+      _redact_value:
+        description: Return first 5 characters followed by redacted marker.
+        parameters:
+          value:
+            type: str
+            required: true
+        returns: str
+        file: src/vault_file/env_store.py
+      on_startup:
+        description: Async function that loads env files from a location and returns the singleton EnvStore.
+        async: true
+        parameters:
+          location:
+            type: str
+            required: true
+          pattern:
+            type: str
+            default: '''.env*'''
+            required: false
+          override:
+            type: bool
+            default: 'False'
+            required: false
+        returns: EnvStore
+        file: src/vault_file/env_store.py
+      validate_vault_data:
+        description: Validates the structure and content of vault data.
+        parameters:
+          data:
+            type: Dict[str, Any]
+            required: true
+        returns: None
+        file: src/vault_file/validators.py
+      validate_header:
+        description: Validates the header of the vault data.
+        parameters:
+          header_data:
+            type: Dict[str, Any]
+            required: true
+        returns: None
+        file: src/vault_file/validators.py
+      mock_logger:
+        decorators:
+        - pytest.fixture
+        file: tests_vault_file/test_core_structure.py
+      test_vault_header_instantiation:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_header_custom_values:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_metadata_instantiation:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_metadata_with_data:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_payload_instantiation:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_file_instantiation_minimal:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_file_instantiation_full:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_validation_error_exception:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_serialization_error_exception:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_file_to_json:
+        parameters:
+          mock_logger:
+            required: true
+        file: tests_vault_file/test_core_structure.py
+      test_vault_file_from_json:
+        parameters:
+          mock_logger:
+            required: true
+        file: tests_vault_file/test_core_structure.py
+      test_vault_file_from_json_invalid_data:
+        file: tests_vault_file/test_core_structure.py
+      test_vault_file_validate_state:
+        file: tests_vault_file/test_core_structure.py
+      fresh_env_store:
+        description: Create a fresh EnvStore instance for each test.
+        decorators:
+        - pytest.fixture
+        file: tests_vault_file/test_env_store.py
+      temp_env_dir:
+        description: Create a temporary directory with .env files.
+        decorators:
+        - pytest.fixture
+        file: tests_vault_file/test_env_store.py
+      temp_single_env_file:
+        description: Create a temporary single .env file.
+        decorators:
+        - pytest.fixture
+        file: tests_vault_file/test_env_store.py
+  exceptions:
+    EnvNotInitializedError:
+      extends: Exception
+      file: src/vault_file/env_store.py
+      description: Raised when trying to access env store before initialization.
+    EnvKeyNotFoundError:
+      extends: Exception
+      file: src/vault_file/env_store.py
+      description: Raised when a required environment key is not found.
+    VaultValidationError:
+      extends: Exception
+      file: src/vault_file/validators.py
+      description: Custom exception for vault validation errors.
+    VaultSerializationError:
+      extends: Exception
+      file: src/vault_file/validators.py
+      description: Custom exception for vault serialization errors.
+  files:
+  - path: src/vault_file/__init__.py
+    language: python
+    imports:
+    - from: core
+      import:
+      - VaultFile
+      - VaultHeader
+      - VaultMetadata
+      - VaultPayload
+    - from: validators
+      import:
+      - VaultValidationError
+      - VaultSerializationError
+    - from: env_store
+      import:
+      - env
+      - on_startup
+      - EnvStore
+      - LoadResult
+      - OnStartupOptions
+      - EnvNotInitializedError
+      - EnvKeyNotFoundError
+  - path: src/vault_file/core.py
+    language: python
+    summary:
+      classes: 5
+    imports:
+    - import: logging
+    - from: abc
+      import:
+      - ABC
+      - abstractmethod
+    - from: dataclasses
+      import:
+      - dataclass
+      - field
+    - from: datetime
+      import:
+      - datetime
+    - import: uuid
+    - from: typing
+      import:
+      - Dict
+      - Any
+      - Optional
+  - path: src/vault_file/env_store.py
+    language: python
+    summary:
+      classes: 3
+      functions: 2
+      exceptions: 2
+    imports:
+    - import: glob
+    - import: logging
+    - import: os
+    - from: dataclasses
+      import:
+      - dataclass
+      - field
+    - from: io
+      import:
+      - StringIO
+    - from: pathlib
+      import:
+      - Path
+    - from: typing
+      import:
+      - Any
+      - Dict
+      - List
+      - Optional
+    - from: dotenv
+      import:
+      - dotenv_values
+      - load_dotenv
+  - path: src/vault_file/validators.py
+    language: python
+    summary:
+      functions: 2
+      exceptions: 2
+    imports:
+    - import: logging
+    - from: typing
+      import:
+      - Dict
+      - Any
+  - path: tests_vault_file/test_core.py
+    language: python
+    summary:
+      classes: 1
+    imports:
+    - import: unittest
+    - import: json
+    - import: os
+    - from: datetime
+      import:
+      - datetime
+      - timedelta
+    - import: uuid
+    - from: vault_file.core
+      import:
+      - VaultFile
+      - VaultHeader
+      - VaultMetadata
+      - VaultPayload
+    - from: vault_file.validators
+      import:
+      - VaultValidationError
+      - VaultSerializationError
+  - path: tests_vault_file/test_core_structure.py
+    language: python
+    summary:
+      functions: 14
+    imports:
+    - import: pytest
+    - from: datetime
+      import:
+      - datetime
+      - timezone
+    - from: uuid
+      import:
+      - UUID
+    - from: unittest.mock
+      import:
+      - patch
+      - MagicMock
+    - from: vault_file.core
+      import:
+      - VaultHeader
+      - VaultMetadata
+      - VaultPayload
+      - VaultFile
+    - from: vault_file.validators
+      import:
+      - VaultValidationError
+      - VaultSerializationError
+  - path: tests_vault_file/test_env_store.py
+    language: python
+    summary:
+      classes: 3
+      functions: 3
+    imports:
+    - import: os
+    - import: tempfile
+    - from: pathlib
+      import:
+      - Path
+    - import: pytest
+    - from: vault_file.env_store
+      import:
+      - EnvStore
+      - EnvKeyNotFoundError
+      - LoadResult
+      - env
+      - on_startup
+analysis_metadata:
+  statistics:
+    packages_analyzed: 1
+    files_analyzed: 7
+    classes_found: 12
+    functions_found: 21
+    exceptions_found: 4
+  languages:
+    python: 7
+  tools_used:
+  - name: FileDiscovery
+    purpose: Scan directories for source files
+  - name: PythonAnalyzer
+    purpose: AST-based Python code analysis
+  - name: JavaScriptAnalyzer
+    purpose: JavaScript/TypeScript code analysis
+  - name: YamlSpecGenerator
+    purpose: Generate YAML specification

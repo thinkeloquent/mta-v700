@@ -1,0 +1,48 @@
+brd:
+  metadata:
+    project: test
+    files_analyzed: 1
+    generated_at: 2025-12-18T00:07:04.067Z
+  executive_summary:
+    purpose: Automated analysis of test
+    key_capabilities:
+      - findAll
+      - create
+      - Route get
+  functional_requirements:
+    - id: FR-000
+      title: ConnectDto
+      type: Entity
+      description: "Data Entity: ConnectDto"
+      source_evidence:
+        file: /Users/Shared/autoload/mta-v700/tools/source-analyzers/BRD-static-analysis-javascript/test/sample_controller.ts
+    - id: FR-001
+      title: findAll
+      type: API Endpoint
+      description: "Detected API Endpoint: findAll"
+      source_evidence:
+        file: /Users/Shared/autoload/mta-v700/tools/source-analyzers/BRD-static-analysis-javascript/test/sample_controller.ts
+    - id: FR-002
+      title: create
+      type: API Endpoint
+      description: "Detected API Endpoint: create"
+      source_evidence:
+        file: /Users/Shared/autoload/mta-v700/tools/source-analyzers/BRD-static-analysis-javascript/test/sample_controller.ts
+    - id: FR-003
+      title: Validation Logic
+      type: Constraint
+      description: Exception logic detected
+      source_evidence:
+        file: /Users/Shared/autoload/mta-v700/tools/source-analyzers/BRD-static-analysis-javascript/test/sample_controller.ts
+        code_ref: "Line: 20"
+    - id: FR-004
+      title: Route get
+      type: API Endpoint
+      description: "Detected Route Definition: get"
+      source_evidence:
+        file: /Users/Shared/autoload/mta-v700/tools/source-analyzers/BRD-static-analysis-javascript/test/sample_controller.ts
+  reasoning:
+    summary: Generated via JS Static Analysis
+    active_personas:
+      - Code Analyst
+      - Systems Architect

@@ -1,0 +1,29 @@
+{
+  "name": "fastify-server",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "fastify_server/src",
+  "projectType": "application",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --watch src/index.mjs",
+        "cwd": "fastify_server"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "echo 'No build step required for ESM'",
+        "cwd": "fastify_server"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test",
+        "cwd": "fastify_server"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "app-yaml-config"
+version = "2.0.0"
+description = "AppYamlConfig - Singleton Configuration Loader"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "app_yaml_config", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pyyaml = "^6.0"
+python-dotenv = "^1.0.0"
+deepmerge = "^1.1.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,293 @@
+# =============================================================================
+# Git Submodule Management Makefile
+# =============================================================================
+# Usage:
+#   make -f Makefile.gitmodule help
+#   make -f Makefile.gitmodule init
+#   make -f Makefile.gitmodule update
+#   make -f Makefile.gitmodule status
+# =============================================================================
+
+.PHONY: help init update update-remote status list sync clean foreach pull push \
+        add-submodule remove-submodule setup
+
+# Colors for output
+CYAN := \033[0;36m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# Default target
+.DEFAULT_GOAL := help
+
+# =============================================================================
+# HELP
+# =============================================================================
+
+help:
+	@echo ""
+	@echo "$(CYAN)Git Submodule Management$(NC)"
+	@echo "========================="
+	@echo ""
+	@echo "$(GREEN)Initialization:$(NC)"
+	@echo "  init              Initialize and clone all submodules"
+	@echo "  init-recursive    Initialize submodules recursively (nested)"
+	@echo ""
+	@echo "$(GREEN)Updates:$(NC)"
+	@echo "  update            Update all submodules to recorded commits"
+	@echo "  update-remote     Update submodules to latest remote commits"
+	@echo "  update-rebase     Update with rebase instead of merge"
+	@echo "  pull              Pull latest changes in all submodules"
+	@echo ""
+	@echo "$(GREEN)Status & Info:$(NC)"
+	@echo "  status            Show status of all submodules"
+	@echo "  list              List all registered submodules"
+	@echo "  diff              Show diff of submodule changes"
+	@echo "  log               Show recent commits in submodules"
+	@echo ""
+	@echo "$(GREEN)Maintenance:$(NC)"
+	@echo "  sync              Sync submodule URLs from .gitmodules"
+	@echo "  clean             Deinitialize and clean submodule dirs"
+	@echo "  reset             Reset submodules to recorded commits"
+	@echo ""
+	@echo "$(GREEN)Batch Operations:$(NC)"
+	@echo "  foreach CMD=...   Run command in each submodule"
+	@echo "  checkout-main     Checkout main/master branch in all"
+	@echo ""
+	@echo "$(GREEN)Add/Remove:$(NC)"
+	@echo "  add-submodule URL=... PATH=...   Add new submodule"
+	@echo "  remove-submodule PATH=...        Remove a submodule"
+	@echo ""
+	@echo "$(YELLOW)Examples:$(NC)"
+	@echo "  make -f Makefile.gitmodule init"
+	@echo "  make -f Makefile.gitmodule update-remote"
+	@echo "  make -f Makefile.gitmodule foreach CMD='git status'"
+	@echo "  make -f Makefile.gitmodule add-submodule URL=git@github.com:user/repo.git PATH=libs/repo"
+	@echo ""
+
+# =============================================================================
+# INITIALIZATION
+# =============================================================================
+
+init:
+	@echo "$(CYAN)Initializing submodules...$(NC)"
+	git submodule init
+	git submodule update
+	@echo "$(GREEN)Done!$(NC)"
+
+init-recursive:
+	@echo "$(CYAN)Initializing submodules recursively...$(NC)"
+	git submodule update --init --recursive
+	@echo "$(GREEN)Done!$(NC)"
+
+# =============================================================================
+# UPDATES
+# =============================================================================
+
+update:
+	@echo "$(CYAN)Updating submodules to recorded commits...$(NC)"
+	git submodule update
+	@echo "$(GREEN)Done!$(NC)"
+
+update-remote:
+	@echo "$(CYAN)Updating submodules to latest remote commits...$(NC)"
+	git submodule update --remote
+	@echo "$(GREEN)Done!$(NC)"
+
+update-rebase:
+	@echo "$(CYAN)Updating submodules with rebase...$(NC)"
+	git submodule update --remote --rebase
+	@echo "$(GREEN)Done!$(NC)"
+
+update-merge:
+	@echo "$(CYAN)Updating submodules with merge...$(NC)"
+	git submodule update --remote --merge
+	@echo "$(GREEN)Done!$(NC)"
+
+pull:
+	@echo "$(CYAN)Pulling latest in all submodules...$(NC)"
+	git submodule foreach 'git pull origin $$(git rev-parse --abbrev-ref HEAD) || true'
+	@echo "$(GREEN)Done!$(NC)"
+
+# =============================================================================
+# STATUS & INFO
+# =============================================================================
+
+status:
+	@echo "$(CYAN)Submodule Status:$(NC)"
+	@echo ""
+	git submodule status
+	@echo ""
+	@echo "$(CYAN)Legend:$(NC)"
+	@echo "  (space) = Up to date with recorded commit"
+	@echo "  +       = Different commit checked out"
+	@echo "  -       = Not initialized"
+	@echo "  U       = Merge conflicts"
+
+list:
+	@echo "$(CYAN)Registered Submodules:$(NC)"
+	@echo ""
+	@git config --file .gitmodules --get-regexp path | awk '{print $$2}'
+
+list-verbose:
+	@echo "$(CYAN)Submodule Details:$(NC)"
+	@echo ""
+	@git config --file .gitmodules --list | grep -E "submodule\.[^.]+\.(path|url)" | \
+		awk -F'=' '{print $$1 " = " $$2}'
+
+diff:
+	@echo "$(CYAN)Submodule Changes:$(NC)"
+	git diff --submodule
+
+log:
+	@echo "$(CYAN)Recent Commits in Submodules:$(NC)"
+	git submodule foreach 'echo ""; echo "=== $$name ==="; git log --oneline -5'
+
+# =============================================================================
+# MAINTENANCE
+# =============================================================================
+
+sync:
+	@echo "$(CYAN)Syncing submodule URLs...$(NC)"
+	git submodule sync
+	git submodule sync --recursive
+	@echo "$(GREEN)Done!$(NC)"
+
+clean:
+	@echo "$(YELLOW)Warning: This will deinitialize all submodules$(NC)"
+	@read -p "Continue? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	git submodule deinit --all
+	@echo "$(GREEN)Done!$(NC)"
+
+reset:
+	@echo "$(CYAN)Resetting submodules to recorded commits...$(NC)"
+	git submodule foreach 'git checkout . && git clean -fdx'
+	git submodule update --force
+	@echo "$(GREEN)Done!$(NC)"
+
+# =============================================================================
+# BATCH OPERATIONS
+# =============================================================================
+
+foreach:
+ifndef CMD
+	@echo "$(RED)Error: CMD not specified$(NC)"
+	@echo "Usage: make -f Makefile.gitmodule foreach CMD='git status'"
+	@exit 1
+endif
+	@echo "$(CYAN)Running '$(CMD)' in each submodule...$(NC)"
+	git submodule foreach '$(CMD)'
+
+checkout-main:
+	@echo "$(CYAN)Checking out main/master in all submodules...$(NC)"
+	git submodule foreach 'git checkout main 2>/dev/null || git checkout master 2>/dev/null || echo "No main/master branch"'
+	@echo "$(GREEN)Done!$(NC)"
+
+fetch-all:
+	@echo "$(CYAN)Fetching all remotes in submodules...$(NC)"
+	git submodule foreach 'git fetch --all'
+	@echo "$(GREEN)Done!$(NC)"
+
+# =============================================================================
+# ADD/REMOVE SUBMODULES
+# =============================================================================
+
+add-submodule:
+ifndef URL
+	@echo "$(RED)Error: URL not specified$(NC)"
+	@echo "Usage: make -f Makefile.gitmodule add-submodule URL=git@github.com:user/repo.git PATH=libs/repo"
+	@exit 1
+endif
+ifndef PATH
+	@echo "$(RED)Error: PATH not specified$(NC)"
+	@echo "Usage: make -f Makefile.gitmodule add-submodule URL=git@github.com:user/repo.git PATH=libs/repo"
+	@exit 1
+endif
+	@echo "$(CYAN)Adding submodule $(URL) at $(PATH)...$(NC)"
+	git submodule add $(URL) $(PATH)
+	@echo "$(GREEN)Done! Don't forget to commit the changes.$(NC)"
+
+remove-submodule:
+ifndef PATH
+	@echo "$(RED)Error: PATH not specified$(NC)"
+	@echo "Usage: make -f Makefile.gitmodule remove-submodule PATH=libs/repo"
+	@exit 1
+endif
+	@echo "$(YELLOW)Removing submodule at $(PATH)...$(NC)"
+	@echo "This will:"
+	@echo "  1. Deinitialize the submodule"
+	@echo "  2. Remove from .gitmodules"
+	@echo "  3. Remove from .git/config"
+	@echo "  4. Remove the directory"
+	@read -p "Continue? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	git submodule deinit -f $(PATH) || true
+	git rm -f $(PATH) || true
+	rm -rf .git/modules/$(PATH) || true
+	@echo "$(GREEN)Done! Don't forget to commit the changes.$(NC)"
+
+# =============================================================================
+# SPECIFIC SUBMODULE TARGETS
+# =============================================================================
+
+# Update specific submodule
+update-%:
+	@echo "$(CYAN)Updating $*...$(NC)"
+	git submodule update --remote $*
+
+# Pull specific submodule
+pull-%:
+	@echo "$(CYAN)Pulling latest in $*...$(NC)"
+	cd $* && git pull
+
+# Status of specific submodule
+status-%:
+	@echo "$(CYAN)Status of $*:$(NC)"
+	cd $* && git status
+
+# =============================================================================
+# CI/CD HELPERS
+# =============================================================================
+
+ci-init:
+	@echo "$(CYAN)CI: Initializing submodules...$(NC)"
+	git submodule update --init --recursive --depth 1
+
+ci-update:
+	@echo "$(CYAN)CI: Updating submodules...$(NC)"
+	git submodule update --recursive --depth 1
+
+# =============================================================================
+# REPORTING
+# =============================================================================
+
+report:
+	@echo "$(CYAN)========================================$(NC)"
+	@echo "$(CYAN)       Git Submodule Report$(NC)"
+	@echo "$(CYAN)========================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Total submodules:$(NC) $$(git submodule status | wc -l | tr -d ' ')"
+	@echo ""
+	@echo "$(GREEN)Submodules:$(NC)"
+	@git submodule foreach --quiet 'echo "  - $$name ($$sha1)"'
+	@echo ""
+	@echo "$(GREEN)Status:$(NC)"
+	@git submodule status | while read line; do \
+		if echo "$$line" | grep -q "^+"; then \
+			echo "  $(YELLOW)$$line$(NC) [modified]"; \
+		elif echo "$$line" | grep -q "^-"; then \
+			echo "  $(RED)$$line$(NC) [not initialized]"; \
+		else \
+			echo "  $(GREEN)$$line$(NC)"; \
+		fi \
+	done
+
+# =============================================================================
+# SETUP (Full reset and initialization)
+# =============================================================================
+
+setup:
+	@echo "$(CYAN)Setting up all submodules from .gitmodules...$(NC)"
+	git submodule sync
+	git submodule update --init --recursive --force
+	@echo "$(GREEN)Done!$(NC)"
