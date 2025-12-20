@@ -252,25 +252,23 @@ class ElasticsearchConfig:
         return base
 
     def get_ssl_config(self) -> Dict[str, Any]:
-        """Get SSL configuration for client."""
+        """Get SSL configuration for client (elasticsearch-py 8.x)."""
         ssl_config = {}
+        # Note: elasticsearch-py 8.x infers SSL from URL scheme (https://)
+        # No 'use_ssl' parameter needed
         if self.use_tls or self.scheme == 'https':
-            ssl_config['use_ssl'] = True
             ssl_config['verify_certs'] = self.verify_certs
             ssl_config['ssl_show_warn'] = self.ssl_show_warn
-            
+
             if self.ca_certs:
-                 ssl_config['ca_certs'] = self.ca_certs
-            
+                ssl_config['ca_certs'] = self.ca_certs
+
             if self.client_cert:
-                 ssl_config['client_cert'] = self.client_cert
-                 
+                ssl_config['client_cert'] = self.client_cert
+
             if self.client_key:
-                 ssl_config['client_key'] = self.client_key
-                 
-            # Create SSL context if custom verification needed?
-            # Standard elasticsearch client handles 'ca_certs' arg.
-            
+                ssl_config['client_key'] = self.client_key
+
         return ssl_config
 
     def get_connection_kwargs(self) -> Dict[str, Any]:

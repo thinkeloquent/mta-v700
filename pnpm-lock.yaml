@@ -87,6 +87,15 @@ importers:
       '@internal/app-yaml-config':
         specifier: workspace:*
         version: link:../packages_mjs/app-yaml-config
+      '@internal/db-connection-elasticsearch':
+        specifier: workspace:*
+        version: link:../packages_mjs/db-connection-elasticsearch
+      '@internal/db_connection_postgres':
+        specifier: workspace:*
+        version: link:../packages_mjs/db_connection_postgres
+      '@internal/db_connection_redis':
+        specifier: workspace:*
+        version: link:../packages_mjs/db_connection_redis
       '@internal/vault-file':
         specifier: workspace:*
         version: link:../packages_mjs/vault-file

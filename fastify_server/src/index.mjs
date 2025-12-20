@@ -9,6 +9,9 @@ import "./load_app_config.mjs";
 import { printRoutes } from "./print_routes.mjs";
 import vaultFileRoutes from "./routes/healthz/vault-file.mjs";
 import appYamlConfigRoutes from "./routes/healthz/app-yaml-config.mjs";
+import elasticsearchRoutes from "./routes/healthz/db-connection-elasticsearch.mjs";
+import postgresRoutes from "./routes/healthz/db-connection-postgres.mjs";
+import redisRoutes from "./routes/healthz/db-connection-redis.mjs";
 
 const fastify = Fastify({
   logger: true,
@@ -27,6 +30,9 @@ fastify.get("/health", async (request, reply) => {
 // Register healthz routes
 fastify.register(vaultFileRoutes);
 fastify.register(appYamlConfigRoutes);
+fastify.register(elasticsearchRoutes);
+fastify.register(postgresRoutes);
+fastify.register(redisRoutes);
 
 // Start server
 const start = async () => {

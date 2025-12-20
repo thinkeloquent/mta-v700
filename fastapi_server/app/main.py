@@ -6,7 +6,13 @@ from .app_yaml_config import AppYamlConfig
 from . import load_app_env  # noqa: F401 - loads .env and vault file
 from . import load_app_config  # noqa: F401 - loads AppYamlConfig
 from .print_routes import print_routes
-from .routes.healthz import vault_file, app_yaml_config
+from .routes.healthz import (
+    vault_file,
+    app_yaml_config,
+    db_connection_elasticsearch,
+    db_connection_postgres,
+    db_connection_redis,
+)
 
 
 @asynccontextmanager
@@ -40,3 +46,6 @@ async def health():
 
 app.include_router(vault_file.router)
 app.include_router(app_yaml_config.router)
+app.include_router(db_connection_elasticsearch.router)
+app.include_router(db_connection_postgres.router)
+app.include_router(db_connection_redis.router)

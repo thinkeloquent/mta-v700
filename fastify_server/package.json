@@ -12,7 +12,10 @@
   "dependencies": {
     "fastify": "^4.24.0",
     "@internal/vault-file": "workspace:*",
-    "@internal/app-yaml-config": "workspace:*"
+    "@internal/app-yaml-config": "workspace:*",
+    "@internal/db-connection-elasticsearch": "workspace:*",
+    "@internal/db_connection_postgres": "workspace:*",
+    "@internal/db_connection_redis": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0"

@@ -75,8 +75,8 @@ setup:
 	@bash .bin/ts-apply-noImplicitAny.sh || true
 	@echo "Installing poetry dependencies..."
 	rm -rf ./logs && mkdir ./logs
-	poetry lock --no-update || true
-	poetry install --no-root || true
+	poetry --verbose lock || true
+	poetry --verbose install --no-root || true
 	npm run build
 	@echo "Setup complete!"
 
