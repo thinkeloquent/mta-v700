@@ -1,0 +1,26 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "db_connection_redis"
+version = "0.1.0"
+description = "Unified Redis connection package"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "db_connection_redis", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pydantic = ">=2.0.0"
+redis = ">=4.5.0"
+# hiredis = ">=2.0.0" # Optional
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+ruff = "^0.1.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"

@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+  # Redis instance
+  redis:
+    image: redis:7-alpine
+    container_name: redis-examples-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - redis-examples-network
+
+  # FastAPI Example Service
+  fastapi-example:
+    build:
+      context: ../
+      dockerfile: examples/fastapi-example/Dockerfile
+    container_name: redis-examples-fastapi
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - redis-examples-network
+
+  # Fastify Example Service
+  fastify-example:
+    build:
+      context: ../
+      dockerfile: examples/fastify-example/Dockerfile
+    container_name: redis-examples-fastify
+    environment:
+      - PORT=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - redis-examples-network
+
+volumes:
+  redis-data:
+    name: redis-examples-data
+
+networks:
+  redis-examples-network:
+    name: redis-examples-network
+    driver: bridge

@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  # PostgreSQL instance
+  postgres:
+    image: postgres:16-alpine
+    container_name: pg-examples-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pg-examples-network
+
+  # FastAPI Example Service
+  fastapi-example:
+    build:
+      context: ../
+      dockerfile: examples/fastapi-example/Dockerfile
+    container_name: pg-examples-fastapi
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=postgres
+      - POSTGRES_SSL_MODE=disable
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pg-examples-network
+
+  # Fastify Example Service
+  fastify-example:
+    build:
+      context: ../
+      dockerfile: examples/fastify-example/Dockerfile
+    container_name: pg-examples-fastify
+    environment:
+      - PORT=3000
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=postgres
+      - POSTGRES_SSL_MODE=disable
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pg-examples-network
+
+volumes:
+  pg-data:
+    name: pg-examples-data
+
+networks:
+  pg-examples-network:
+    name: pg-examples-network
+    driver: bridge

@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+  # Elasticsearch instance
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: es-examples-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q 'status']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - es-examples-network
+
+  # FastAPI Example Service
+  fastapi-example:
+    build:
+      context: ../
+      dockerfile: examples/fastapi-example/Dockerfile
+    container_name: es-examples-fastapi
+    environment:
+      - ELASTIC_DB_HOST=elasticsearch
+      - ELASTIC_DB_PORT=9200
+      - ELASTIC_DB_SCHEME=http
+      - ELASTIC_DB_VERIFY_CERTS=false
+    ports:
+      - "8000:8000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - es-examples-network
+
+  # Fastify Example Service
+  fastify-example:
+    build:
+      context: ../
+      dockerfile: examples/fastify-example/Dockerfile
+    container_name: es-examples-fastify
+    environment:
+      - PORT=3000
+      - ELASTIC_DB_HOST=elasticsearch
+      - ELASTIC_DB_PORT=9200
+      - ELASTIC_DB_SCHEME=http
+      - ELASTIC_DB_VERIFY_CERTS=false
+    ports:
+      - "3000:3000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - es-examples-network
+
+volumes:
+  es-data:
+    name: es-examples-data
+
+networks:
+  es-examples-network:
+    name: es-examples-network
+    driver: bridge

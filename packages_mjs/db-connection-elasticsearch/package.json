@@ -1,0 +1,25 @@
+{
+    "name": "@internal/db-connection-elasticsearch",
+    "version": "1.0.0",
+    "description": "Unified Elasticsearch connection library for Node.js",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "lint": "eslint src/**/*.ts"
+    },
+    "dependencies": {
+        "zod": "^3.22.0",
+        "@elastic/elasticsearch": "^8.0.0",
+        "@elastic/transport": "^8.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "typescript": "^5.0.0",
+        "vitest": "^1.0.0",
+        "@vitest/coverage-v8": "^1.0.0",
+        "eslint": "^8.0.0"
+    }
+}

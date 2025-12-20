@@ -86,10 +86,16 @@ PACKAGES=(
     # MJS packages
     "app_yaml_config:mjs:app-yaml-config:app-yaml-config"
     "vault-file:mjs:vault-file:vault-file"
+    "db_connection_elasticsearch:mjs:db-connection-elasticsearch:db-connection-elasticsearch"
+    "db_connection_postgres:mjs:db_connection_postgres:db_connection_postgres"
+    "db_connection_redis:mjs:db_connection_redis:db_connection_redis"
 
     # Python packages
     "app_yaml_config:py:app_yaml_config:app_yaml_config"
     "vault-file:py:vault_file:vault_file"
+    "db_connection_elasticsearch:py:db_connection_elasticsearch:db_connection_elasticsearch"
+    "db_connection_postgres:py:db_connection_postgres:db_connection_postgres"
+    "db_connection_redis:py:db_connection_redis:db_connection_redis"
 )
 
 # ==============================================================================

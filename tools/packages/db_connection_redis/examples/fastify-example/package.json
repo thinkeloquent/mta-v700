@@ -1,0 +1,18 @@
+{
+    "name": "fastify-redis-example",
+    "version": "1.0.0",
+    "description": "Fastify example using db_connection_redis",
+    "main": "src/server.mjs",
+    "type": "module",
+    "scripts": {
+        "start": "node src/server.mjs",
+        "dev": "node --watch src/server.mjs"
+    },
+    "dependencies": {
+        "fastify": "^4.28.0",
+        "@internal/db_connection_redis": "file:../../packages_mjs/db_connection_redis"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0"
+    }
+}

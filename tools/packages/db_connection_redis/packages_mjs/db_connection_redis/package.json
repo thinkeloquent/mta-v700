@@ -1,0 +1,19 @@
+{
+    "name": "@internal/db_connection_redis",
+    "version": "1.0.0",
+    "description": "Unified Redis connection package",
+    "main": "src/index.mjs",
+    "type": "module",
+    "scripts": {
+        "test": "node --test test/*.test.mjs",
+        "lint": "eslint src/**/*.mjs"
+    },
+    "dependencies": {
+        "ioredis": "^5.0.0",
+        "generic-pool": "^3.9.0",
+        "zod": "^3.22.0"
+    },
+    "devDependencies": {
+        "eslint": "^8.0.0"
+    }
+}

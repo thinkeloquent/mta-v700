@@ -1,0 +1,20 @@
+{
+    "name": "@internal/db_connection_postgres",
+    "version": "1.0.0",
+    "description": "Unified PostgreSQL connection package",
+    "main": "src/index.mjs",
+    "type": "module",
+    "scripts": {
+        "test": "node --test test/*.test.mjs",
+        "lint": "eslint src/**/*.mjs"
+    },
+    "dependencies": {
+        "sequelize": "^6.35.0",
+        "pg": "^8.11.0",
+        "pg-hstore": "^2.3.0",
+        "zod": "^3.22.0"
+    },
+    "devDependencies": {
+        "eslint": "^8.0.0"
+    }
+}
