@@ -1,0 +1,12 @@
+{
+    "name": "nodejs-elasticsearch-elastic-builder",
+    "version": "1.0.0",
+    "description": "Elasticsearch Query DSL builder example (using elastic-builder)",
+    "main": "example.js",
+    "scripts": {
+        "test": "node example.js"
+    },
+    "dependencies": {
+        "elastic-builder": "^2.19.0"
+    }
+}

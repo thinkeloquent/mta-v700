@@ -1,0 +1,13 @@
+{
+    "name": "nodejs-opensearch-community-client",
+    "version": "1.0.0",
+    "description": "OpenSearch Node.js client connection tests",
+    "main": "connect.js",
+    "scripts": {
+        "test": "node connect.js"
+    },
+    "dependencies": {
+        "@opensearch-project/opensearch": "^2.5.0",
+        "dotenv": "^16.3.1"
+    }
+}

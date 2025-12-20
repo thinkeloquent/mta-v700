@@ -1,0 +1,13 @@
+{
+    "name": "nodejs-opensearch-aws-sdk",
+    "version": "1.0.0",
+    "description": "AWS SDK OpenSearch client (Control Plane)",
+    "main": "connect.js",
+    "scripts": {
+        "test": "node connect.js"
+    },
+    "dependencies": {
+        "@aws-sdk/client-opensearch": "^3.400.0",
+        "dotenv": "^16.3.1"
+    }
+}

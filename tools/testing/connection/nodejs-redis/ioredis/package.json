@@ -1,0 +1,13 @@
+{
+  "name": "ioredis-connection-test",
+  "version": "1.0.0",
+  "description": "Redis connection test using ioredis",
+  "type": "module",
+  "main": "connect.mjs",
+  "scripts": {
+    "test": "node connect.mjs"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1"
+  }
+}

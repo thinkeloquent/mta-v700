@@ -1,0 +1,12 @@
+{
+    "name": "nodejs-elasticsearch-bodybuilder",
+    "version": "1.0.0",
+    "description": "Elasticsearch Query DSL builder example",
+    "main": "example.js",
+    "scripts": {
+        "test": "node example.js"
+    },
+    "dependencies": {
+        "bodybuilder": "^2.5.1"
+    }
+}

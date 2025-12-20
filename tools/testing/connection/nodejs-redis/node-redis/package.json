@@ -1,0 +1,13 @@
+{
+  "name": "redis-connection-test",
+  "version": "1.0.0",
+  "description": "Redis connection test using node-redis (redis package)",
+  "type": "module",
+  "main": "connect.mjs",
+  "scripts": {
+    "test": "node connect.mjs"
+  },
+  "dependencies": {
+    "redis": "^4.7.0"
+  }
+}
