@@ -8,6 +8,9 @@ dependencies = [
     "uvicorn[standard]>=0.24.0",
     "vault-file",
     "app-yaml-config",
+    "db-connection-elasticsearch @ file:///Users/Shared/autoload/mta-v700/packages_py/db_connection_elasticsearch",
+    "db-connection-postgres @ file:///Users/Shared/autoload/mta-v700/packages_py/db_connection_postgres",
+    "db-connection-redis @ file:///Users/Shared/autoload/mta-v700/packages_py/db_connection_redis",
 ]
 
 [project.optional-dependencies]
@@ -47,9 +50,9 @@ redis = ">=4.5.0"
 elasticsearch = ">=8.0.0"
 vault-file = {path = "../packages_py/vault_file", develop = true}
 app-yaml-config = {path = "../packages_py/app_yaml_config", develop = true}
-db_connection_elasticsearch = {path = "../packages_py/db_connection_elasticsearch", develop = true}
-db_connection_postgres = {path = "../packages_py/db_connection_postgres", develop = true}
-db_connection_redis = {path = "../packages_py/db_connection_redis", develop = true}
+db_connection_elasticsearch = {develop = true}
+db_connection_postgres = {develop = true}
+db_connection_redis = {develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.0"

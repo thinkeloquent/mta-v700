@@ -148,7 +148,10 @@ class ElasticsearchConfig:
         self.cloud_id = get_val("cloud_id", self.cloud_id, None)
         self.api_key = get_val("api_key", self.api_key, None)
         self.username = get_val("username", self.username, None)
+        # Password can come from ELASTIC_DB_PASSWORD or ELASTIC_DB_ACCESS_KEY (DigitalOcean uses ACCESS_KEY)
         self.password = get_val("password", self.password, None)
+        if self.password is None:
+            self.password = os.getenv("ELASTIC_DB_ACCESS_KEY")
         self.api_auth_type = get_val("api_auth_type", self.api_auth_type, None)
         self.use_tls = get_val("use_tls", self.use_tls, False, bool)
         self.verify_certs = get_val("verify_certs", self.verify_certs, False, bool)
@@ -170,11 +173,15 @@ class ElasticsearchConfig:
         """Auto-detect vendor type based on config."""
         if self.cloud_id:
             self.vendor_type = VENDOR_ELASTIC_CLOUD
-        elif self.host and ("digitaloceanspaces" in self.host or self.port == 25060):
+        elif self.host and (
+            "ondigitalocean.com" in self.host or
+            "digitaloceanspaces" in self.host or
+            self.port == 25060
+        ):
             self.vendor_type = VENDOR_DIGITAL_OCEAN
         elif self.vendor_type not in VALID_VENDORS:
-             # Default fallback if not detected clearly, though validation catches this later
-             pass
+            # Default fallback if not detected clearly, though validation catches this later
+            pass
     
     def _validate(self) -> None:
         """Validate configuration."""
@@ -278,25 +285,27 @@ class ElasticsearchConfig:
             "max_retries": self.max_retries,
             "retry_on_timeout": self.retry_on_timeout,
         }
-        
+
         # Authentication
-        if self.api_key:
-            # If it's a tuple (id, key), pass as tuple. If string, pass as tuple/string depending on client version?
-            # Client supports tuple or string (encoded).
-            # Assuming api_key string is what we have.
+        # DigitalOcean OpenSearch uses basic auth, not API keys
+        if self.vendor_type == VENDOR_DIGITAL_OCEAN:
+            if self.username and self.password:
+                kwargs["basic_auth"] = (self.username, self.password)
+        elif self.api_key:
+            # Elasticsearch Cloud API key auth
             kwargs["api_key"] = self.api_key
         elif self.username and self.password:
-             kwargs["basic_auth"] = (self.username, self.password)
-        
+            kwargs["basic_auth"] = (self.username, self.password)
+
         # SSL
         kwargs.update(self.get_ssl_config())
-        
+
         # Vendor Specifics
         if self.vendor_type == VENDOR_ELASTIC_CLOUD and self.cloud_id:
-             kwargs["cloud_id"] = self.cloud_id
+            kwargs["cloud_id"] = self.cloud_id
         else:
-             kwargs["hosts"] = [self.get_base_url()]
-             
+            kwargs["hosts"] = [self.get_base_url()]
+
         return kwargs
 
     def get_transport_kwargs(self) -> Dict[str, Any]:

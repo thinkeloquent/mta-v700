@@ -4,13 +4,13 @@
 
 import {
   ElasticsearchConfig,
-  getElasticsearchClient,
   checkConnection,
 } from '@internal/db-connection-elasticsearch';
 
 export default async function elasticsearchRoutes(fastify) {
   fastify.get('/healthz/admin/db-connection-elasticsearch/status', async (request, reply) => {
-    const result = await checkConnection();
+    const config = new ElasticsearchConfig();
+    const result = await checkConnection(config);
     return {
       connected: result.success,
       cluster_name: result.info?.cluster_name || null,

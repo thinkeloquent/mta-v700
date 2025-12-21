@@ -60,7 +60,8 @@ export class ElasticsearchConfig {
             cloudId: process.env.ELASTIC_DB_CLOUD_ID,
             apiKey: process.env.ELASTIC_DB_API_KEY,
             username: process.env.ELASTIC_DB_USERNAME,
-            password: process.env.ELASTIC_DB_PASSWORD,
+            // Password can come from ELASTIC_DB_PASSWORD or ELASTIC_DB_ACCESS_KEY (DigitalOcean uses ACCESS_KEY)
+            password: process.env.ELASTIC_DB_PASSWORD || process.env.ELASTIC_DB_ACCESS_KEY,
             apiAuthType: process.env.ELASTIC_DB_API_AUTH_TYPE,
             useTls: process.env.ELASTIC_DB_USE_TLS === "true",
             verifyCerts: process.env.ELASTIC_DB_VERIFY_CERTS === "true",
@@ -200,8 +201,12 @@ export class ElasticsearchConfig {
             maxRetries: this.options.maxRetries,
         };
 
-        // Auth
-        if (this.options.apiKey) {
+        // Auth - DigitalOcean uses basic auth, not API keys
+        if (this.options.vendorType === VENDOR_DIGITAL_OCEAN) {
+            if (this.options.username && this.options.password) {
+                opts.auth = { username: this.options.username, password: this.options.password };
+            }
+        } else if (this.options.apiKey) {
             opts.auth = { apiKey: this.options.apiKey };
         } else if (this.options.username && this.options.password) {
             opts.auth = { username: this.options.username, password: this.options.password };
