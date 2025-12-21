@@ -30,6 +30,9 @@ try {
   await AppYamlConfig.initialize({
     files: ['base.yml', 'server.{APP_ENV}.yaml'],
     configDir,
+    computedDefinitions: {
+      proxy_url: (c) => c.getNested(['network', 'proxy_urls', appEnv]),
+    },
   });
 
   const config = AppYamlConfig.getInstance();

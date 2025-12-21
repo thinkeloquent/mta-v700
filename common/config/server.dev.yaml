@@ -285,7 +285,10 @@ display:
 network:
   default_environment: 'dev'
   proxy_urls:
+    local: ''
     dev: 'http://proxy.dev.local:8080'
+    qa: 'http://proxy.qa.local:8080'
+    prod: 'http://proxy.prod.local:8080'
   ca_bundle: "/path/to/custom-ca.crt"
   cert: null
   cert_verify: true
