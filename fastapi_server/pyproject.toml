@@ -11,6 +11,7 @@ dependencies = [
     "db-connection-elasticsearch @ file:///Users/Shared/autoload/mta-v700/packages_py/db_connection_elasticsearch",
     "db-connection-postgres @ file:///Users/Shared/autoload/mta-v700/packages_py/db_connection_postgres",
     "db-connection-redis @ file:///Users/Shared/autoload/mta-v700/packages_py/db_connection_redis",
+    "greenlet (>=3.3.0,<4.0.0)",
 ]
 
 [project.optional-dependencies]

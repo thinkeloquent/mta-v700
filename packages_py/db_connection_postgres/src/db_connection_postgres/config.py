@@ -60,9 +60,15 @@ class DatabaseConfig:
              self.user = self._resolve(None, "POSTGRES_USERNAME", None, None, None, "postgres")
         
         self.password = self._resolve(password, "POSTGRES_PASSWORD", "DATABASE_PASSWORD", config, "password", None)
-        self.database = self._resolve(database, "POSTGRES_DATABASE", "DATABASE_NAME", "POSTGRES_DB", config, "database", "postgres")
+        self.database = self._resolve(database, "POSTGRES_DATABASE", "DATABASE_NAME", config, "database", "postgres", env3="POSTGRES_DB")
         self.schema = self._resolve(schema, "POSTGRES_SCHEMA", "DATABASE_SCHEMA", config, "schema", "public")
-        self.ssl_mode = self._resolve(ssl_mode, "POSTGRES_SSL_MODE", "DATABASE_SSL_MODE", config, "ssl_mode", "prefer")
+        # Check multiple env var names for SSL mode (POSTGRES_SSL_MODE, POSTGRES_SSLMODE, DATABASE_SSL_MODE)
+        self.ssl_mode = self._resolve(ssl_mode, "POSTGRES_SSL_MODE", "DATABASE_SSL_MODE", config, "ssl_mode", "prefer", env3="POSTGRES_SSLMODE")
+        # Handle boolean-like values: true/false -> require/disable
+        if self.ssl_mode in ("true", "1", "yes", "on"):
+            self.ssl_mode = "require"
+        elif self.ssl_mode in ("false", "0", "no", "off"):
+            self.ssl_mode = "disable"
         self.ssl_ca_file = self._resolve(ssl_ca_file, "POSTGRES_SSL_CA_FILE", None, config, "ssl_ca_file", None)
         
         # Booleans need careful handling from env
@@ -188,10 +194,15 @@ class DatabaseConfig:
             if self.ssl_ca_file:
                 ssl_context.load_verify_locations(cafile=self.ssl_ca_file)
             
-            if self.ssl_mode == "require" or self.ssl_mode == "verify-ca" or self.ssl_mode == "verify-full":
+            # Per PostgreSQL SSL modes:
+            # - require: encrypt but don't verify certificate
+            # - verify-ca: encrypt and verify CA signature
+            # - verify-full: encrypt, verify CA, and verify hostname
+            if self.ssl_mode in ("verify-ca", "verify-full"):
                 ssl_context.check_hostname = self.ssl_check_hostname and (self.ssl_mode == "verify-full")
                 ssl_context.verify_mode = ssl.CERT_REQUIRED
             else:
+                # "require", "allow", "prefer" - encrypt without cert verification
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
                 
