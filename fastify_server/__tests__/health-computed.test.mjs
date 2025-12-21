@@ -46,6 +46,26 @@ async function run() {
         }
 
         console.log("SUCCESS: 403 handling verified.");
+
+        // Test list providers
+        console.log("Testing /healthz/admin/app-yaml-config/providers...");
+        const responseList = await fastify.inject({
+            method: 'GET',
+            url: '/healthz/admin/app-yaml-config/providers'
+        });
+
+        if (responseList.statusCode !== 200) {
+            console.error(`FAILED: Status ${responseList.statusCode}, Body: ${responseList.payload}`);
+            process.exit(1);
+        }
+
+        const providers = JSON.parse(responseList.payload);
+        console.log(`SUCCESS: Got providers list: ${JSON.stringify(providers)}`);
+        if (!Array.isArray(providers)) {
+            console.error("FAILED: Response is not an array");
+            process.exit(1);
+        }
+
         process.exit(0);
 
     } catch (err) {

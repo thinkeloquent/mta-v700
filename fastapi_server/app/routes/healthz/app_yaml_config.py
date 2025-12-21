@@ -72,3 +72,12 @@ async def app_yaml_config_provider(name: str):
              from fastapi import HTTPException
              raise HTTPException(status_code=404, detail=f"Provider '{name}' not found")
         raise e
+
+
+@router.get("/providers")
+async def app_yaml_config_list_providers():
+    """List all available providers."""
+    config = AppYamlConfig.get_instance()
+    providers = config.get("providers") or {}
+    return list(providers.keys())
+

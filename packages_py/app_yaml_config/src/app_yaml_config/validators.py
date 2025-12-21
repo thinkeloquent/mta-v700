@@ -19,3 +19,7 @@ class ComputedKeyNotFoundError(Exception):
 class CircularDependencyError(Exception):
     """Raised when computed functions have circular dependencies."""
     pass
+
+class ProviderNotFoundError(Exception):
+    """Raised when a requested provider is not found in configuration."""
+    pass

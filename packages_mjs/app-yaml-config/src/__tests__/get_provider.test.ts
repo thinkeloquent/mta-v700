@@ -9,7 +9,7 @@ describe('getProvider', () => {
 
     beforeEach(() => {
         // Mock the singleton
-        AppYamlConfig['instance'] = undefined;
+        AppYamlConfig['instance'] = null;
 
         // Create a mock instance with desired config
         const mockConfigData = {

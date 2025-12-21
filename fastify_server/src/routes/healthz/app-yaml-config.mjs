@@ -66,4 +66,11 @@ export default async function appYamlConfigRoutes(fastify) {
       throw e;
     }
   });
+
+  fastify.get('/healthz/admin/app-yaml-config/providers', async (request, reply) => {
+    const config = AppYamlConfig.getInstance();
+    const providers = config.get('providers') || {};
+    return Object.keys(providers);
+  });
 }
+

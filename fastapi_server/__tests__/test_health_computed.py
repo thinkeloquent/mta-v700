@@ -64,6 +64,19 @@ try:
          sys.exit(1)
     print("SUCCESS: 403 handling verified for provider.")
     
+    # Test list providers
+    print("Testing /healthz/admin/app-yaml-config/providers...")
+    response = client.get("/healthz/admin/app-yaml-config/providers")
+    if response.status_code != 200:
+        print(f"FAILED: Status {response.status_code}, Body: {response.text}")
+        sys.exit(1)
+    
+    providers = response.json()
+    print(f"SUCCESS: Got providers list: {providers}")
+    if not isinstance(providers, list):
+        print("FAILED: Response is not a list")
+        sys.exit(1)
+
     # Test forbidden key
     print("Testing /healthz/admin/app-yaml-config/compute/forbidden_key (Forbidden)...")
     response = client.get("/healthz/admin/app-yaml-config/compute/forbidden_key")

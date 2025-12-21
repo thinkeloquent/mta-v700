@@ -36,3 +36,10 @@ export class CircularDependencyError extends Error {
         this.name = 'CircularDependencyError';
     }
 }
+
+export class ProviderNotFoundError extends Error {
+    constructor(name: string) {
+        super(`Provider '${name}' not found in configuration`);
+        this.name = 'ProviderNotFoundError';
+    }
+}
