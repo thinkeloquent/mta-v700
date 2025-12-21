@@ -9,8 +9,9 @@
         "lint": "eslint src/**/*.mjs"
     },
     "dependencies": {
-        "ioredis": "^5.0.0",
+        "@internal/env-resolve": "workspace:*",
         "generic-pool": "^3.9.0",
+        "ioredis": "^5.0.0",
         "zod": "^3.22.0"
     },
     "devDependencies": {

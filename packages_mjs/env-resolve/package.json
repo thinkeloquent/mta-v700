@@ -1,0 +1,24 @@
+{
+    "name": "@internal/env-resolve",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.mjs"
+    },
+    "types": "./src/index.d.ts",
+    "scripts": {
+        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    },
+    "jest": {
+        "testMatch": [
+            "**/__tests__/**/*.[jt]s?(x)",
+            "**/?(*.)+(spec|test).[jt]s?(x)",
+            "**/?(*.)+(spec|test).mjs"
+        ],
+        "transform": {}
+    },
+    "devDependencies": {
+        "jest": "^29.0.0"
+    }
+}

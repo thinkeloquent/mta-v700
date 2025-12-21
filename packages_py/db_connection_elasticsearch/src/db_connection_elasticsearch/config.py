@@ -14,7 +14,30 @@ from .constants import (
     VALID_VENDORS,
     VENDOR_DEFAULT_PORTS,
     TLS_PORTS,
+    ENV_ELASTIC_VENDOR_TYPE,
+    ENV_ELASTIC_HOST,
+    ENV_ELASTIC_PORT,
+    ENV_ELASTIC_SCHEME,
+    ENV_ELASTIC_CLOUD_ID,
+    ENV_ELASTIC_API_KEY,
+    ENV_ELASTIC_USERNAME,
+    ENV_ELASTIC_PASSWORD,
+    ENV_ELASTIC_ACCESS_KEY,
+    ENV_ELASTIC_API_AUTH_TYPE,
+    ENV_ELASTIC_USE_TLS,
+    ENV_ELASTIC_VERIFY_CERTS,
+    ENV_ELASTIC_SSL_SHOW_WARN,
+    ENV_ELASTIC_CA_CERTS,
+    ENV_ELASTIC_CLIENT_CERT,
+    ENV_ELASTIC_CLIENT_KEY,
+    ENV_ELASTIC_INDEX,
+    ENV_ELASTIC_VERIFY_CLUSTER,
+    ENV_ELASTIC_REQUEST_TIMEOUT,
+    ENV_ELASTIC_CONNECT_TIMEOUT,
+    ENV_ELASTIC_MAX_RETRIES,
+    ENV_ELASTIC_RETRY_ON_TIMEOUT,
 )
+from env_resolve.core import resolve, resolve_bool, resolve_int, resolve_float
 
 logger = logging.getLogger(__name__)
 
@@ -110,61 +133,32 @@ class ElasticsearchConfig:
     def _resolve_configuration(self, config_dict: Optional[Dict[str, Any]]) -> None:
         """Resolve configuration from multiple sources."""
         
-        # Helper to get value from sources
-        def get_val(field_name: str, arg_val: Any, default: Any, target_type: type = str) -> Any:
-            # 1. Argument
-            if arg_val is not None:
-                return arg_val
-            
-            # 2. Env Var
-            env_key = f"ELASTIC_DB_{field_name.upper()}"
-            env_val = os.getenv(env_key)
-            if env_val is not None:
-                if target_type == bool:
-                    return env_val.lower() in ('true', '1', 'yes')
-                if target_type == int:
-                    try:
-                        return int(env_val)
-                    except ValueError:
-                        pass
-                if target_type == float:
-                    try:
-                        return float(env_val)
-                    except ValueError:
-                        pass
-                return env_val
-                
-            # 3. Config Dict
-            if config_dict and field_name in config_dict:
-                return config_dict[field_name]
-                
-            # 4. Default
-            return default
 
-        self.vendor_type = get_val("vendor_type", self.vendor_type, VENDOR_ON_PREM)
-        self.host = get_val("host", self.host, "localhost")
-        self.port = get_val("port", self.port, 9200, int)
-        self.scheme = get_val("scheme", self.scheme, "https")
-        self.cloud_id = get_val("cloud_id", self.cloud_id, None)
-        self.api_key = get_val("api_key", self.api_key, None)
-        self.username = get_val("username", self.username, None)
+        self.vendor_type = resolve(self.vendor_type, ENV_ELASTIC_VENDOR_TYPE, config_dict, "vendor_type", VENDOR_ON_PREM)
+        self.host = resolve(self.host, ENV_ELASTIC_HOST, config_dict, "host", "localhost")
+        self.port = resolve_int(self.port, ENV_ELASTIC_PORT, config_dict, "port", 9200)
+        self.scheme = resolve(self.scheme, ENV_ELASTIC_SCHEME, config_dict, "scheme", "https")
+        self.cloud_id = resolve(self.cloud_id, ENV_ELASTIC_CLOUD_ID, config_dict, "cloud_id", None)
+        self.api_key = resolve(self.api_key, ENV_ELASTIC_API_KEY, config_dict, "api_key", None)
+        self.username = resolve(self.username, ENV_ELASTIC_USERNAME, config_dict, "username", None)
         # Password can come from ELASTIC_DB_PASSWORD or ELASTIC_DB_ACCESS_KEY (DigitalOcean uses ACCESS_KEY)
-        self.password = get_val("password", self.password, None)
+        self.password = resolve(self.password, ENV_ELASTIC_PASSWORD, config_dict, "password", None)
         if self.password is None:
-            self.password = os.getenv("ELASTIC_DB_ACCESS_KEY")
-        self.api_auth_type = get_val("api_auth_type", self.api_auth_type, None)
-        self.use_tls = get_val("use_tls", self.use_tls, False, bool)
-        self.verify_certs = get_val("verify_certs", self.verify_certs, False, bool)
-        self.ssl_show_warn = get_val("ssl_show_warn", self.ssl_show_warn, False, bool)
-        self.ca_certs = get_val("ca_certs", self.ca_certs, None)
-        self.client_cert = get_val("client_cert", self.client_cert, None)
-        self.client_key = get_val("client_key", self.client_key, None)
-        self.index = get_val("index", self.index, None)
-        self.verify_cluster_connection = get_val("verify_cluster_connection", self.verify_cluster_connection, False, bool)
-        self.request_timeout = get_val("request_timeout", self.request_timeout, 30.0, float)
-        self.connect_timeout = get_val("connect_timeout", self.connect_timeout, 10.0, float)
-        self.max_retries = get_val("max_retries", self.max_retries, 3, int)
-        self.retry_on_timeout = get_val("retry_on_timeout", self.retry_on_timeout, True, bool)
+            self.password = resolve(None, ENV_ELASTIC_ACCESS_KEY, None, None, None)
+            
+        self.api_auth_type = resolve(self.api_auth_type, ENV_ELASTIC_API_AUTH_TYPE, config_dict, "api_auth_type", None)
+        self.use_tls = resolve_bool(self.use_tls, ENV_ELASTIC_USE_TLS, config_dict, "use_tls", False)
+        self.verify_certs = resolve_bool(self.verify_certs, ENV_ELASTIC_VERIFY_CERTS, config_dict, "verify_certs", False)
+        self.ssl_show_warn = resolve_bool(self.ssl_show_warn, ENV_ELASTIC_SSL_SHOW_WARN, config_dict, "ssl_show_warn", False)
+        self.ca_certs = resolve(self.ca_certs, ENV_ELASTIC_CA_CERTS, config_dict, "ca_certs", None)
+        self.client_cert = resolve(self.client_cert, ENV_ELASTIC_CLIENT_CERT, config_dict, "client_cert", None)
+        self.client_key = resolve(self.client_key, ENV_ELASTIC_CLIENT_KEY, config_dict, "client_key", None)
+        self.index = resolve(self.index, ENV_ELASTIC_INDEX, config_dict, "index", None)
+        self.verify_cluster_connection = resolve_bool(self.verify_cluster_connection, ENV_ELASTIC_VERIFY_CLUSTER, config_dict, "verify_cluster_connection", False)
+        self.request_timeout = resolve_float(self.request_timeout, ENV_ELASTIC_REQUEST_TIMEOUT, config_dict, "request_timeout", 30.0)
+        self.connect_timeout = resolve_float(self.connect_timeout, ENV_ELASTIC_CONNECT_TIMEOUT, config_dict, "connect_timeout", 10.0)
+        self.max_retries = resolve_int(self.max_retries, ENV_ELASTIC_MAX_RETRIES, config_dict, "max_retries", 3)
+        self.retry_on_timeout = resolve_bool(self.retry_on_timeout, ENV_ELASTIC_RETRY_ON_TIMEOUT, config_dict, "retry_on_timeout", True)
 
         # Auto-detect logic
         self._detect_vendor()

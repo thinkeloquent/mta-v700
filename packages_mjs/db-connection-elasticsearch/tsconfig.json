@@ -5,12 +5,18 @@
         "outDir": "./dist",
         "rootDir": "./src",
         "strict": true,
-    "noImplicitAny": false,
+        "noImplicitAny": false,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "declaration": true,
         "declarationMap": true,
-        "sourceMap": true
+        "sourceMap": true,
+        "baseUrl": ".",
+        "paths": {
+            "@internal/*": [
+                "../*/src"
+            ]
+        }
     },
     "include": [
         "src/**/*"

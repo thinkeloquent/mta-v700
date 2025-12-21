@@ -1,11 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, AsyncEngine
 from sqlalchemy import text
 
-from .config import DatabaseConfig
+from .config import PostgresConfig
 from .client import get_async_sqlalchemy_engine
 from .exceptions import DatabaseConnectionError
 
@@ -13,17 +13,14 @@ logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     """
-    Manages database connection lifecycle, engine, and sessions.
-    Singleton pattern usage recommended.
+    Manages database connection and session lifecycle.
     """
-    _instance: Optional["DatabaseManager"] = None
     
-    def __init__(self, config: Optional[DatabaseConfig] = None):
-        if config is None:
-            config = DatabaseConfig()
-        self.config = config
+    def __init__(self, config: Optional[PostgresConfig] = None, base: Optional[Any] = None):
         self._engine: Optional[AsyncEngine] = None
         self._session_factory: Optional[async_sessionmaker[AsyncSession]] = None
+        
+        self.config = config or PostgresConfig()
         
     @property
     def engine(self) -> AsyncEngine:
@@ -78,7 +75,7 @@ class DatabaseManager:
 
 _db_manager: Optional[DatabaseManager] = None
 
-def get_db_manager(config: Optional[DatabaseConfig] = None) -> DatabaseManager:
+def get_db_manager(config: Optional[PostgresConfig] = None) -> DatabaseManager:
     """Get or create the global DatabaseManager instance."""
     global _db_manager
     if _db_manager is None:

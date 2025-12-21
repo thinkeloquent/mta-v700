@@ -15,6 +15,9 @@ pydantic = ">=2.0.0"
 sqlalchemy = ">=2.0.0"
 asyncpg = ">=0.27.0"
 psycopg2-binary = ">=2.9.0"
+pyyaml = "^6.0.3"
+deepmerge = "^2.0"
+env-resolve = {path = "../env_resolve"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

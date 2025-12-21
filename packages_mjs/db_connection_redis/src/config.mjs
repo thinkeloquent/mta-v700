@@ -1,47 +1,38 @@
 import fs from 'fs';
 import { URL } from 'url';
 import { RedisConfigSchema } from './schemas.mjs';
-import { DEFAULT_CONFIG } from './constants.mjs';
+import {
+    DEFAULT_CONFIG,
+    ENV_REDIS_HOST,
+    ENV_REDIS_PORT,
+    ENV_REDIS_USERNAME,
+    ENV_REDIS_PASSWORD,
+    ENV_REDIS_DB,
+    ENV_REDIS_SSL,
+    ENV_REDIS_SSL_CERT_REQS,
+    ENV_REDIS_SSL_CA_CERTS,
+    ENV_REDIS_SSL_CHECK_HOSTNAME,
+    ENV_REDIS_SOCKET_TIMEOUT,
+    ENV_REDIS_SOCKET_CONNECT_TIMEOUT,
+    ENV_REDIS_MAX_CONNECTIONS,
+    ENV_REDIS_MIN_CONNECTIONS
+} from './constants.mjs';
 import { RedisConfigError } from './exceptions.mjs';
+import { resolve, resolveBool, resolveInt, resolveFloat } from '@internal/env-resolve';
 
-function resolve(arg, envKeys, config, configKey, defaultValue) {
-    if (arg !== undefined && arg !== null) return arg;
-    for (const key of envKeys) {
-        if (process.env[key] !== undefined) return process.env[key];
-    }
-    if (config && config[configKey] !== undefined) return config[configKey];
-    return defaultValue;
-}
-
-function resolveBool(arg, envKeys, config, configKey, defaultValue) {
-    const val = resolve(arg, envKeys, config, configKey, defaultValue);
-    if (typeof val === 'boolean') return val;
-    if (typeof val === 'string') return ['true', '1', 'yes', 'on'].includes(val.toLowerCase());
-    return Boolean(val);
-}
-
-function resolveInt(arg, envKeys, config, configKey, defaultValue) {
-    const val = resolve(arg, envKeys, config, configKey, defaultValue);
-    return val ? parseInt(val, 10) : val;
-}
-
-function resolveFloat(arg, envKeys, config, configKey, defaultValue) {
-    const val = resolve(arg, envKeys, config, configKey, defaultValue);
-    return val ? parseFloat(val) : val;
-}
 
 export class RedisConfig {
     constructor(options = {}) {
-        this.host = resolve(options.host, ['REDIS_HOST', 'REDIS_HOSTNAME'], options, 'host', DEFAULT_CONFIG.host);
-        this.port = resolveInt(options.port, ['REDIS_PORT'], options, 'port', DEFAULT_CONFIG.port);
-        this.username = resolve(options.username, ['REDIS_USERNAME', 'REDIS_USER'], options, 'username', DEFAULT_CONFIG.username);
-        this.password = resolve(options.password, ['REDIS_PASSWORD', 'REDIS_AUTH'], options, 'password', DEFAULT_CONFIG.password);
-        this.db = resolveInt(options.db, ['REDIS_DB', 'REDIS_DATABASE'], options, 'db', DEFAULT_CONFIG.db);
+        this.host = resolve(options.host, ENV_REDIS_HOST, options, 'host', DEFAULT_CONFIG.host);
+        this.port = resolveInt(options.port, ENV_REDIS_PORT, options, 'port', DEFAULT_CONFIG.port);
+        this.username = resolve(options.username, ENV_REDIS_USERNAME, options, 'username', DEFAULT_CONFIG.username);
+        this.password = resolve(options.password, ENV_REDIS_PASSWORD, options, 'password', DEFAULT_CONFIG.password);
+        this.db = resolveInt(options.db, ENV_REDIS_DB, options, 'db', DEFAULT_CONFIG.db);
 
-        this.useTls = resolveBool(options.useTls, ['REDIS_SSL', 'REDIS_USE_TLS', 'REDIS_TLS'], options, 'useTls', DEFAULT_CONFIG.useTls);
-        this.sslCertReqs = resolve(options.sslCertReqs, ['REDIS_SSL_CERT_REQS'], options, 'sslCertReqs', DEFAULT_CONFIG.sslCertReqs);
+        this.useTls = resolveBool(options.useTls, ENV_REDIS_SSL, options, 'useTls', DEFAULT_CONFIG.useTls);
+        this.sslCertReqs = resolve(options.sslCertReqs, ENV_REDIS_SSL_CERT_REQS, options, 'sslCertReqs', DEFAULT_CONFIG.sslCertReqs);
 
-        let caCerts = resolve(options.sslCaCerts, ['REDIS_SSL_CA_CERTS'], options, 'sslCaCerts', DEFAULT_CONFIG.sslCaCerts);
+        let caCerts = resolve(options.sslCaCerts, ENV_REDIS_SSL_CA_CERTS, options, 'sslCaCerts', DEFAULT_CONFIG.sslCaCerts);
         if (caCerts && fs.existsSync(caCerts)) {
             try {
                 caCerts = fs.readFileSync(caCerts, 'utf8');
@@ -51,10 +42,10 @@ export class RedisConfig {
         }
         this.sslCaCerts = caCerts;
 
-        this.sslCheckHostname = resolveBool(options.sslCheckHostname, ['REDIS_SSL_CHECK_HOSTNAME'], options, 'sslCheckHostname', DEFAULT_CONFIG.sslCheckHostname);
+        this.sslCheckHostname = resolveBool(options.sslCheckHostname, ENV_REDIS_SSL_CHECK_HOSTNAME, options, 'sslCheckHostname', DEFAULT_CONFIG.sslCheckHostname);
 
         // Socket timeout from env is in seconds, convert to milliseconds for ioredis
-        let socketTimeoutRaw = resolveFloat(options.socketTimeout, ['REDIS_SOCKET_TIMEOUT'], options, 'socketTimeout', null);
+        let socketTimeoutRaw = resolveFloat(options.socketTimeout, ENV_REDIS_SOCKET_TIMEOUT, options, 'socketTimeout', null);
         if (socketTimeoutRaw !== null && socketTimeoutRaw < 100) {
             // If value is small (< 100), assume it's in seconds and convert to ms
             this.socketTimeout = socketTimeoutRaw * 1000;
@@ -62,7 +53,7 @@ export class RedisConfig {
             this.socketTimeout = socketTimeoutRaw || DEFAULT_CONFIG.socketTimeout;
         }
 
-        let socketConnectTimeoutRaw = resolveFloat(options.socketConnectTimeout, ['REDIS_SOCKET_CONNECT_TIMEOUT'], options, 'socketConnectTimeout', null);
+        let socketConnectTimeoutRaw = resolveFloat(options.socketConnectTimeout, ENV_REDIS_SOCKET_CONNECT_TIMEOUT, options, 'socketConnectTimeout', null);
         if (socketConnectTimeoutRaw !== null && socketConnectTimeoutRaw < 100) {
             this.socketConnectTimeout = socketConnectTimeoutRaw * 1000;
         } else {
@@ -70,8 +61,8 @@ export class RedisConfig {
         }
         this.retryOnTimeout = resolveBool(options.retryOnTimeout, [], options, 'retryOnTimeout', DEFAULT_CONFIG.retryOnTimeout);
 
-        this.maxConnections = resolveInt(options.maxConnections, ['REDIS_MAX_CONNECTIONS'], options, 'maxConnections', DEFAULT_CONFIG.maxConnections);
-        this.minConnections = resolveInt(options.minConnections, ['REDIS_MIN_CONNECTIONS'], options, 'minConnections', DEFAULT_CONFIG.minConnections);
+        this.maxConnections = resolveInt(options.maxConnections, ENV_REDIS_MAX_CONNECTIONS, options, 'maxConnections', DEFAULT_CONFIG.maxConnections);
+        this.minConnections = resolveInt(options.minConnections, ENV_REDIS_MIN_CONNECTIONS, options, 'minConnections', DEFAULT_CONFIG.minConnections);
         this.healthCheckInterval = resolveFloat(options.healthCheckInterval, [], options, 'healthCheckInterval', DEFAULT_CONFIG.healthCheckInterval);
 
         // URL override

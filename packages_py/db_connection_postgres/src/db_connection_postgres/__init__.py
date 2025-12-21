@@ -1,4 +1,4 @@
-from .config import DatabaseConfig
+from .config import PostgresConfig
 from .session import DatabaseManager, get_db_manager
 from .exceptions import DatabaseConfigError, DatabaseConnectionError, DatabaseImportError
 from .types import Base, TimestampMixin, SoftDeleteMixin, UUIDPrimaryKeyMixin, TableNameMixin

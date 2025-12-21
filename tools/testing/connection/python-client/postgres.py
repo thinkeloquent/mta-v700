@@ -9,9 +9,7 @@ Health Check: SELECT 1
 Uses internal packages:
   - provider_api_getters: Credential resolution
   - app_static_config_yaml: YAML configuration loading
-
-Note: PostgreSQL uses its own wire protocol, not HTTP.
-This file uses asyncpg for async PostgreSQL connections.
+  - db_connection_postgres: Configuration resolution
 """
 import asyncio
 import os
@@ -23,90 +21,71 @@ from typing import Any
 # Project Setup - Add packages to path
 # ============================================================================
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / "packages_py" / "app_static_config_yaml" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "packages_py" / "app_yaml_config" / "src"))
 sys.path.insert(0, str(PROJECT_ROOT / "packages_py" / "provider_api_getters" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "packages_py" / "db_connection_postgres" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "packages_py" / "env_resolve" / "src"))
 
 # Load static config
-from static_config import load_yaml_config, config as static_config
+from app_yaml_config import AppYamlConfig
 CONFIG_DIR = PROJECT_ROOT / "common" / "config"
-load_yaml_config(config_dir=str(CONFIG_DIR))
+# Initialize with common files
+static_config = AppYamlConfig.initialize(["server.yaml"], config_dir=str(CONFIG_DIR))
 
 # Import internal packages
-from provider_api_getters import PostgresApiToken, ProviderHealthChecker
+# Import internal packages
+from db_connection_postgres.config import PostgresConfig
 
 # ============================================================================
-# Configuration - Exposed for debugging
+# Configuration
 # ============================================================================
-provider = PostgresApiToken(static_config)
-api_key_result = provider.get_api_key()
+# Use PostgresConfig to resolve environment variables
+pg_config = PostgresConfig()
 
+# Helper to expose as dict for debugging/compatibility
 CONFIG = {
-    # From provider_api_getters or environment
-    "POSTGRES_HOST": os.getenv("POSTGRES_HOST", "localhost"),
-    "POSTGRES_PORT": int(os.getenv("POSTGRES_PORT", "5432")),
-    "POSTGRES_USER": api_key_result.username or os.getenv("POSTGRES_USER", "postgres"),
-    "POSTGRES_PASSWORD": api_key_result.api_key or os.getenv("POSTGRES_PASSWORD", ""),
-    "POSTGRES_DB": os.getenv("POSTGRES_DB", "postgres"),
-    "POSTGRES_SCHEMA": os.getenv("POSTGRES_SCHEMA", "public"),
-
-    # Connection URL (alternative)
-    "DATABASE_URL": os.getenv("DATABASE_URL", ""),
-
-    # Debug
+    "POSTGRES_HOST": pg_config.host,
+    "POSTGRES_PORT": pg_config.port,
+    "POSTGRES_USER": pg_config.user,
+    "POSTGRES_PASSWORD": pg_config.password,
+    "POSTGRES_DB": pg_config.database,
+    "POSTGRES_SCHEMA": pg_config.schema,
     "DEBUG": os.getenv("DEBUG", "true").lower() not in ("false", "0"),
 }
 
-
 def get_connection_url() -> str:
     """Get connection URL."""
-    if CONFIG["DATABASE_URL"]:
-        return CONFIG["DATABASE_URL"]
-    return (
-        f"postgresql://{CONFIG['POSTGRES_USER']}:{CONFIG['POSTGRES_PASSWORD']}"
-        f"@{CONFIG['POSTGRES_HOST']}:{CONFIG['POSTGRES_PORT']}/{CONFIG['POSTGRES_DB']}"
-    )
+    return pg_config.get_dsn()
 
 
 # ============================================================================
 # Health Check
 # ============================================================================
 async def health_check() -> dict[str, Any]:
-    """Health check using ProviderHealthChecker."""
-    print("\n=== PostgreSQL Health Check (ProviderHealthChecker) ===\n")
-
-    checker = ProviderHealthChecker(static_config)
-    result = await checker.check("postgres")
-
-    print(f"Status: {result.status}")
-    if result.latency_ms:
-        print(f"Latency: {result.latency_ms:.2f}ms")
-    if result.message:
-        print(f"Message: {result.message}")
-    if result.error:
-        print(f"Error: {result.error}")
-
-    return {"success": result.status == "connected", "result": result}
-
+    """Health check using asyncpg directly (ProviderHealthChecker removed)."""
+    print("\n=== PostgreSQL Health Check (asyncpg) ===\n")
+    try:
+        return await health_check_asyncpg()
+    except Exception as e:
+        print(f"Health check failed: {e}")
+        return {"success": False, "error": str(e)}
 
 # ============================================================================
 # Sample Operations using asyncpg
 # ============================================================================
 async def health_check_asyncpg() -> dict[str, Any]:
     """Perform health check using asyncpg."""
-    print("\n=== PostgreSQL Health Check (asyncpg) ===\n")
+    print(f"Connecting to: {pg_config.host}:{pg_config.port}/{pg_config.database}")
 
     try:
         import asyncpg
+    except ImportError:
+        print("Error: asyncpg package not installed.")
+        return {"success": False, "error": "asyncpg package not installed"}
 
-        print(f"Connecting to: {CONFIG['POSTGRES_HOST']}:{CONFIG['POSTGRES_PORT']}/{CONFIG['POSTGRES_DB']}")
-
-        conn = await asyncpg.connect(
-            host=CONFIG["POSTGRES_HOST"],
-            port=CONFIG["POSTGRES_PORT"],
-            user=CONFIG["POSTGRES_USER"],
-            password=CONFIG["POSTGRES_PASSWORD"],
-            database=CONFIG["POSTGRES_DB"],
-        )
+    try:
+        # Use kwd arguments from config
+        conn = await asyncpg.connect(**pg_config.get_connection_kwargs())
 
         # Test connection
         result = await conn.fetchval("SELECT 1")
@@ -138,13 +117,7 @@ async def sample_operations() -> dict[str, Any]:
     try:
         import asyncpg
 
-        conn = await asyncpg.connect(
-            host=CONFIG["POSTGRES_HOST"],
-            port=CONFIG["POSTGRES_PORT"],
-            user=CONFIG["POSTGRES_USER"],
-            password=CONFIG["POSTGRES_PASSWORD"],
-            database=CONFIG["POSTGRES_DB"],
-        )
+        conn = await asyncpg.connect(**pg_config.get_connection_kwargs())
 
         # List schemas
         schemas = await conn.fetch("""
@@ -162,8 +135,8 @@ async def sample_operations() -> dict[str, Any]:
             FROM information_schema.tables
             WHERE table_schema = $1
             ORDER BY table_name
-        """, CONFIG["POSTGRES_SCHEMA"])
-        print(f"\nTables in {CONFIG['POSTGRES_SCHEMA']}:")
+        """, pg_config.schema)
+        print(f"\nTables in {pg_config.schema}:")
         for table in tables[:10]:
             print(f"  - {table['table_name']}")
 
@@ -191,11 +164,11 @@ async def main():
     """Run connection tests."""
     print("PostgreSQL Connection Test (Python Client Integration)")
     print("=" * 55)
-    print(f"Host: {CONFIG['POSTGRES_HOST']}:{CONFIG['POSTGRES_PORT']}")
-    print(f"Database: {CONFIG['POSTGRES_DB']}")
-    print(f"User: {CONFIG['POSTGRES_USER']}")
-    print(f"Schema: {CONFIG['POSTGRES_SCHEMA']}")
-    print(f"Debug: {CONFIG['DEBUG']}")
+    print(f"Host: {pg_config.host}:{pg_config.port}")
+    print(f"Database: {pg_config.database}")
+    print(f"User: {pg_config.user}")
+    print(f"Schema: {pg_config.schema}")
+    print(f"SSL: {pg_config.ssl_mode}")
 
     await health_check()
 

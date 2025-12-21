@@ -13,6 +13,7 @@
     "dependencies": {
         "@elastic/elasticsearch": "^8.0.0",
         "@elastic/transport": "^8.0.0",
+        "@internal/env-resolve": "workspace:*",
         "@opensearch-project/opensearch": "^2.13.0",
         "zod": "^3.22.0"
     },

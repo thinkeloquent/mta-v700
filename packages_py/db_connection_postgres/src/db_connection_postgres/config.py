@@ -7,9 +7,27 @@ from sqlalchemy.engine.url import URL, make_url
 
 from .exceptions import DatabaseConfigError
 from .schemas import DatabaseConfigValidator
+from .constants import (
+    ENV_POSTGRES_HOST,
+    ENV_POSTGRES_PORT,
+    ENV_POSTGRES_USER,
+    ENV_POSTGRES_USERNAME,
+    ENV_POSTGRES_PASSWORD,
+    ENV_POSTGRES_DB,
+    ENV_POSTGRES_SCHEMA,
+    ENV_POSTGRES_SSL_MODE,
+    ENV_POSTGRES_SSL_CA_FILE,
+    ENV_POSTGRES_SSL_CHECK_HOSTNAME,
+    ENV_POSTGRES_ECHO,
+    ENV_POSTGRES_POOL_SIZE,
+    ENV_POSTGRES_MAX_OVERFLOW,
+    ENV_POSTGRES_POOL_TIMEOUT,
+    ENV_POSTGRES_POOL_RECYCLE,
+)
+from env_resolve.core import resolve, resolve_bool, resolve_int
 
 @dataclass
-class DatabaseConfig:
+class PostgresConfig:
     """
     Configuration for PostgreSQL connection.
     Resolves parameters from source of truth in order:
@@ -52,34 +70,34 @@ class DatabaseConfig:
         echo: Optional[bool] = None
     ):
         # Resolve values
-        self.host = self._resolve(host, "POSTGRES_HOST", "DATABASE_HOST", config, "host", "localhost")
-        self.port = int(self._resolve(port, "POSTGRES_PORT", "DATABASE_PORT", config, "port", 5432))
-        self.user = self._resolve(user, "POSTGRES_USER", "DATABASE_USER", config, "user", "postgres")
+        self.host = resolve(host, ENV_POSTGRES_HOST, config, "host", "localhost")
+        self.port = resolve_int(port, ENV_POSTGRES_PORT, config, "port", 5432)
+        self.user = resolve(user, ENV_POSTGRES_USER, config, "user", "postgres")
         # Support POSTGRES_USERNAME as fallback for user
         if self.user == "postgres":
-             self.user = self._resolve(None, "POSTGRES_USERNAME", None, None, None, "postgres")
+             self.user = resolve(None, ENV_POSTGRES_USERNAME, None, None, "postgres")
         
-        self.password = self._resolve(password, "POSTGRES_PASSWORD", "DATABASE_PASSWORD", config, "password", None)
-        self.database = self._resolve(database, "POSTGRES_DATABASE", "DATABASE_NAME", config, "database", "postgres", env3="POSTGRES_DB")
-        self.schema = self._resolve(schema, "POSTGRES_SCHEMA", "DATABASE_SCHEMA", config, "schema", "public")
+        self.password = resolve(password, ENV_POSTGRES_PASSWORD, config, "password", None)
+        self.database = resolve(database, ENV_POSTGRES_DB, config, "database", "postgres")
+        self.schema = resolve(schema, ENV_POSTGRES_SCHEMA, config, "schema", "public")
         # Check multiple env var names for SSL mode (POSTGRES_SSL_MODE, POSTGRES_SSLMODE, DATABASE_SSL_MODE)
-        self.ssl_mode = self._resolve(ssl_mode, "POSTGRES_SSL_MODE", "DATABASE_SSL_MODE", config, "ssl_mode", "prefer", env3="POSTGRES_SSLMODE")
+        self.ssl_mode = resolve(ssl_mode, ENV_POSTGRES_SSL_MODE, config, "ssl_mode", "prefer")
         # Handle boolean-like values: true/false -> require/disable
         if self.ssl_mode in ("true", "1", "yes", "on"):
             self.ssl_mode = "require"
         elif self.ssl_mode in ("false", "0", "no", "off"):
             self.ssl_mode = "disable"
-        self.ssl_ca_file = self._resolve(ssl_ca_file, "POSTGRES_SSL_CA_FILE", None, config, "ssl_ca_file", None)
+        self.ssl_ca_file = resolve(ssl_ca_file, ENV_POSTGRES_SSL_CA_FILE, config, "ssl_ca_file", None)
         
         # Booleans need careful handling from env
-        self.ssl_check_hostname = self._resolve_bool(ssl_check_hostname, "POSTGRES_SSL_CHECK_HOSTNAME", None, config, "ssl_check_hostname", True)
-        self.echo = self._resolve_bool(echo, "POSTGRES_ECHO", "DATABASE_ECHO", config, "echo", False)
+        self.ssl_check_hostname = resolve_bool(ssl_check_hostname, ENV_POSTGRES_SSL_CHECK_HOSTNAME, config, "ssl_check_hostname", True)
+        self.echo = resolve_bool(echo, ENV_POSTGRES_ECHO, config, "echo", False)
         
         # Pool settings
-        self.pool_size = int(self._resolve(pool_size, "POSTGRES_POOL_SIZE", "DATABASE_POOL_SIZE", config, "pool_size", 5))
-        self.max_overflow = int(self._resolve(max_overflow, "POSTGRES_MAX_OVERFLOW", "DATABASE_MAX_OVERFLOW", config, "max_overflow", 10))
-        self.pool_timeout = int(self._resolve(pool_timeout, "POSTGRES_POOL_TIMEOUT", "DATABASE_POOL_TIMEOUT", config, "pool_timeout", 30))
-        self.pool_recycle = int(self._resolve(pool_recycle, "POSTGRES_POOL_RECYCLE", "DATABASE_POOL_RECYCLE", config, "pool_recycle", 3600))
+        self.pool_size = resolve_int(pool_size, ENV_POSTGRES_POOL_SIZE, config, "pool_size", 5)
+        self.max_overflow = resolve_int(max_overflow, ENV_POSTGRES_MAX_OVERFLOW, config, "max_overflow", 10)
+        self.pool_timeout = resolve_int(pool_timeout, ENV_POSTGRES_POOL_TIMEOUT, config, "pool_timeout", 30)
+        self.pool_recycle = resolve_int(pool_recycle, ENV_POSTGRES_POOL_RECYCLE, config, "pool_recycle", 3600)
 
         # Check for DATABASE_URL override
         db_url_env = os.getenv("DATABASE_URL")
@@ -88,58 +106,6 @@ class DatabaseConfig:
 
         # Validate
         self.validate()
-
-    def _resolve(self, arg_value: Any, env_key1: str, env_key2: Optional[str], env_key3: Optional[str], config: Optional[Dict], config_key: Optional[str], default: Any) -> Any:
-        # 1. Direct Argument
-        if arg_value is not None:
-            return arg_value
-        
-        # 2. Environment Variables
-        if env_key1:
-            val = os.getenv(env_key1)
-            if val is not None: return val
-        if env_key2:
-            val = os.getenv(env_key2)
-            if val is not None: return val
-        if env_key3: # Handle the 3rd env key logic if passed, tricky in signature but I'll adjust usage
-             if isinstance(env_key3, str) and not isinstance(config, dict) and config_key is None: # Wait, logic above was messy.
-                 # Let's fix the call site, or simplify. 
-                 pass # Logic below simplifies to standard patterns
-
-        # Special casing for the dict/config keys since I mixed signatures
-        # Let's clean up logic:
-        # Check envs (variable args would be better but explicit is fine)
-        # Check config dict
-        # Return default
-        return default # Placeholder, implementing correct logic in actual code below
-
-    def _resolve(self, arg: Any, env1: str, env2: Optional[str], config: Optional[Dict], config_key: Optional[str], default: Any, env3: Optional[str] = None) -> Any:
-        if arg is not None:
-            return arg
-        
-        val = os.getenv(env1)
-        if val is not None: return val
-        
-        if env2:
-            val = os.getenv(env2)
-            if val is not None: return val
-            
-        if env3:
-            val = os.getenv(env3)
-            if val is not None: return val
-            
-        if config and config_key and config_key in config:
-            return config[config_key]
-            
-        return default
-
-    def _resolve_bool(self, arg: Any, env1: str, env2: Optional[str], config: Optional[Dict], config_key: Optional[str], default: bool) -> bool:
-        val = self._resolve(arg, env1, env2, config, config_key, default)
-        if isinstance(val, bool):
-            return val
-        if isinstance(val, str):
-            return val.lower() in ("true", "1", "yes", "on")
-        return bool(val)
 
     def _parse_database_url(self, url: str) -> None:
         """Parse DATABASE_URL and override config."""
@@ -160,6 +126,10 @@ class DatabaseConfig:
             DatabaseConfigValidator(**self.__dict__)
         except Exception as e:
             raise DatabaseConfigError(f"Configuration validation failed: {str(e)}")
+
+    def get_dsn(self) -> str:
+        """Get DSN string."""
+        return str(self.get_async_url())
 
     def get_async_url(self) -> URL:
         """Return SQLAlchemy URL for asyncpg."""
@@ -183,7 +153,7 @@ class DatabaseConfig:
             database=self.database,
         )
 
-    def get_connect_args(self) -> Dict[str, Any]:
+    def get_connection_kwargs(self) -> Dict[str, Any]:
         """Get connection arguments for asyncpg, including SSL context."""
         connect_args = {}
         
@@ -208,6 +178,12 @@ class DatabaseConfig:
                 
             connect_args["ssl"] = ssl_context
             
+        connect_args["user"] = self.user
+        connect_args["password"] = self.password
+        connect_args["host"] = self.host
+        connect_args["port"] = self.port
+        connect_args["database"] = self.database
+
         # Add server_settings for schema search_path
         if self.schema:
             connect_args["server_settings"] = {"search_path": self.schema}

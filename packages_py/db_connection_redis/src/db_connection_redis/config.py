@@ -6,6 +6,21 @@ from urllib.parse import urlparse, parse_qs
 
 from .exceptions import RedisConfigError
 from .schemas import RedisConfigValidator
+from .constants import (
+    ENV_REDIS_HOST,
+    ENV_REDIS_PORT,
+    ENV_REDIS_USERNAME,
+    ENV_REDIS_PASSWORD,
+    ENV_REDIS_DB,
+    ENV_REDIS_SSL,
+    ENV_REDIS_TLS_ALT,
+    ENV_REDIS_SSL_CERT_REQS,
+    ENV_REDIS_SSL_CA_CERTS,
+    ENV_REDIS_SSL_CHECK_HOSTNAME,
+    ENV_REDIS_SOCKET_TIMEOUT,
+    ENV_REDIS_MAX_CONNECTIONS,
+)
+from env_resolve.core import resolve, resolve_bool, resolve_int, resolve_float
 
 @dataclass
 class RedisConfig:
@@ -57,32 +72,32 @@ class RedisConfig:
         decode_responses: Optional[bool] = None
     ):
         # Resolve values
-        self.host = self._resolve(host, "REDIS_HOST", "REDIS_HOSTNAME", config, "host", "localhost")
-        self.port = int(self._resolve(port, "REDIS_PORT", None, config, "port", 6379))
-        self.username = self._resolve(username, "REDIS_USERNAME", "REDIS_USER", config, "username", None)
-        self.password = self._resolve(password, "REDIS_PASSWORD", "REDIS_AUTH", config, "password", None)
-        self.db = int(self._resolve(db, "REDIS_DB", "REDIS_DATABASE", config, "db", 0))
-        self.unix_socket_path = self._resolve(unix_socket_path, None, None, config, "unix_socket_path", None)
+        self.host = resolve(host, ENV_REDIS_HOST, config, "host", "localhost")
+        self.port = resolve_int(port, ENV_REDIS_PORT, config, "port", 6379)
+        self.username = resolve(username, ENV_REDIS_USERNAME, config, "username", None)
+        self.password = resolve(password, ENV_REDIS_PASSWORD, config, "password", None)
+        self.db = resolve_int(db, ENV_REDIS_DB, config, "db", 0)
+        self.unix_socket_path = resolve(unix_socket_path, [], config, "unix_socket_path", None)
         
         # Check multiple env var names for SSL (REDIS_SSL, REDIS_USE_TLS, REDIS_TLS, REDIS_USE_SSL)
-        self.use_ssl = self._resolve_bool(use_ssl, "REDIS_SSL", "REDIS_TLS", config, "use_ssl", False)
+        self.use_ssl = resolve_bool(use_ssl, ENV_REDIS_SSL, config, "use_ssl", False)
         if not self.use_ssl:
             # Also check alternative names
-            self.use_ssl = self._resolve_bool(None, "REDIS_USE_TLS", "REDIS_USE_SSL", config, "use_ssl", False)
-        self.ssl_cert_reqs = self._resolve(ssl_cert_reqs, "REDIS_SSL_CERT_REQS", None, config, "ssl_cert_reqs", "none")
-        self.ssl_ca_certs = self._resolve(ssl_ca_certs, "REDIS_SSL_CA_CERTS", None, config, "ssl_ca_certs", None)
-        self.ssl_check_hostname = self._resolve_bool(ssl_check_hostname, "REDIS_SSL_CHECK_HOSTNAME", None, config, "ssl_check_hostname", False)
+            self.use_ssl = resolve_bool(None, ENV_REDIS_TLS_ALT, config, "use_ssl", False)
+        self.ssl_cert_reqs = resolve(ssl_cert_reqs, ENV_REDIS_SSL_CERT_REQS, config, "ssl_cert_reqs", "none")
+        self.ssl_ca_certs = resolve(ssl_ca_certs, ENV_REDIS_SSL_CA_CERTS, config, "ssl_ca_certs", None)
+        self.ssl_check_hostname = resolve_bool(ssl_check_hostname, ENV_REDIS_SSL_CHECK_HOSTNAME, config, "ssl_check_hostname", False)
         
-        self.socket_timeout = float(self._resolve(socket_timeout, "REDIS_SOCKET_TIMEOUT", None, config, "socket_timeout", 5.0))
-        self.socket_connect_timeout = float(self._resolve(socket_connect_timeout, None, None, config, "socket_connect_timeout", 5.0))
-        self.retry_on_timeout = self._resolve_bool(retry_on_timeout, None, None, config, "retry_on_timeout", False)
+        self.socket_timeout = resolve_float(socket_timeout, ENV_REDIS_SOCKET_TIMEOUT, config, "socket_timeout", 5.0)
+        self.socket_connect_timeout = resolve_float(socket_connect_timeout, [], config, "socket_connect_timeout", 5.0)
+        self.retry_on_timeout = resolve_bool(retry_on_timeout, [], config, "retry_on_timeout", False)
         
-        max_conn = self._resolve(max_connections, "REDIS_MAX_CONNECTIONS", None, config, "max_connections", None)
+        max_conn = resolve(max_connections, ENV_REDIS_MAX_CONNECTIONS, config, "max_connections", None)
         self.max_connections = int(max_conn) if max_conn is not None else None
         
-        self.health_check_interval = float(self._resolve(health_check_interval, None, None, config, "health_check_interval", 0))
-        self.encoding = self._resolve(encoding, None, None, config, "encoding", "utf-8")
-        self.decode_responses = self._resolve_bool(decode_responses, None, None, config, "decode_responses", True)
+        self.health_check_interval = resolve_float(health_check_interval, [], config, "health_check_interval", 0)
+        self.encoding = resolve(encoding, [], config, "encoding", "utf-8")
+        self.decode_responses = resolve_bool(decode_responses, [], config, "decode_responses", True)
 
         # REDIS_URL override
         redis_url = os.getenv("REDIS_URL")
@@ -94,24 +109,6 @@ class RedisConfig:
 
         # Validate
         self.validate()
-
-    def _resolve(self, arg: Any, env1: Optional[str], env2: Optional[str], config: Optional[Dict], config_key: str, default: Any) -> Any:
-        if arg is not None:
-            return arg
-        if env1 and os.getenv(env1) is not None:
-            return os.getenv(env1)
-        if env2 and os.getenv(env2) is not None:
-            return os.getenv(env2)
-        if config and config_key in config:
-            return config[config_key]
-        return default
-
-    def _resolve_bool(self, arg: Any, env1: Optional[str], env2: Optional[str], config: Optional[Dict], config_key: str, default: bool) -> bool:
-        val = self._resolve(arg, env1, env2, config, config_key, default)
-        if isinstance(val, bool): return val
-        if isinstance(val, str):
-            return val.lower() in ("true", "1", "yes", "on")
-        return bool(val)
 
     def _parse_redis_url(self, url: str) -> None:
         """Parse redis:// or rediss:// URL."""

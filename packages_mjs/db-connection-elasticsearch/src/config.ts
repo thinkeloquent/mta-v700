@@ -5,7 +5,30 @@ import {
     VENDOR_ELASTIC_TRANSPORT,
     VENDOR_DIGITAL_OCEAN,
     VALID_VENDORS,
+    ENV_ELASTIC_VENDOR_TYPE,
+    ENV_ELASTIC_HOST,
+    ENV_ELASTIC_PORT,
+    ENV_ELASTIC_SCHEME,
+    ENV_ELASTIC_CLOUD_ID,
+    ENV_ELASTIC_API_KEY,
+    ENV_ELASTIC_USERNAME,
+    ENV_ELASTIC_PASSWORD,
+    ENV_ELASTIC_ACCESS_KEY,
+    ENV_ELASTIC_API_AUTH_TYPE,
+    ENV_ELASTIC_USE_TLS,
+    ENV_ELASTIC_VERIFY_CERTS,
+    ENV_ELASTIC_SSL_SHOW_WARN,
+    ENV_ELASTIC_CA_CERTS,
+    ENV_ELASTIC_CLIENT_CERT,
+    ENV_ELASTIC_CLIENT_KEY,
+    ENV_ELASTIC_INDEX,
+    ENV_ELASTIC_VERIFY_CLUSTER,
+    ENV_ELASTIC_REQUEST_TIMEOUT,
+    ENV_ELASTIC_CONNECT_TIMEOUT,
+    ENV_ELASTIC_MAX_RETRIES,
+    ENV_ELASTIC_RETRY_ON_TIMEOUT,
 } from "./constants";
+import { resolve, resolveBool, resolveInt, resolveFloat } from "@internal/env-resolve";
 
 export const ElasticsearchConfigSchema = z.object({
     vendorType: z.string().optional().default(VENDOR_ON_PREM),
@@ -44,55 +67,35 @@ export class ElasticsearchConfigError extends Error {
 export class ElasticsearchConfig {
     public options: ElasticsearchConfigResolved;
 
+
     constructor(
         options: Partial<ElasticsearchConfigOptions> = {},
         configDict: Record<string, any> = {}
     ) {
         // Resolution Logic: Args > Env > ConfigDict > Default
-        // We can merge sources into one object and let Zod parse it.
 
-        // 1. Env Vars
-        const envConfig = {
-            vendorType: process.env.ELASTIC_DB_VENDOR_TYPE,
-            host: process.env.ELASTIC_DB_HOST,
-            port: process.env.ELASTIC_DB_PORT ? parseInt(process.env.ELASTIC_DB_PORT) : undefined,
-            scheme: process.env.ELASTIC_DB_SCHEME,
-            cloudId: process.env.ELASTIC_DB_CLOUD_ID,
-            apiKey: process.env.ELASTIC_DB_API_KEY,
-            username: process.env.ELASTIC_DB_USERNAME,
-            // Password can come from ELASTIC_DB_PASSWORD or ELASTIC_DB_ACCESS_KEY (DigitalOcean uses ACCESS_KEY)
-            password: process.env.ELASTIC_DB_PASSWORD || process.env.ELASTIC_DB_ACCESS_KEY,
-            apiAuthType: process.env.ELASTIC_DB_API_AUTH_TYPE,
-            useTls: process.env.ELASTIC_DB_USE_TLS === "true",
-            verifyCerts: process.env.ELASTIC_DB_VERIFY_CERTS === "true",
-            sslShowWarn: process.env.ELASTIC_DB_SSL_SHOW_WARN === "true",
-            caCerts: process.env.ELASTIC_DB_CA_CERTS,
-            clientCert: process.env.ELASTIC_DB_CLIENT_CERT,
-            clientKey: process.env.ELASTIC_DB_CLIENT_KEY,
-            index: process.env.ELASTIC_DB_INDEX,
-            verifyClusterConnection: process.env.ELASTIC_DB_VERIFY_CLUSTER_CONNECTION === "true",
-            requestTimeout: process.env.ELASTIC_DB_REQUEST_TIMEOUT ? parseFloat(process.env.ELASTIC_DB_REQUEST_TIMEOUT) : undefined,
-            connectTimeout: process.env.ELASTIC_DB_CONNECT_TIMEOUT ? parseFloat(process.env.ELASTIC_DB_CONNECT_TIMEOUT) : undefined,
-            maxRetries: process.env.ELASTIC_DB_MAX_RETRIES ? parseInt(process.env.ELASTIC_DB_MAX_RETRIES) : undefined,
-            retryOnTimeout: process.env.ELASTIC_DB_RETRY_ON_TIMEOUT ? process.env.ELASTIC_DB_RETRY_ON_TIMEOUT === "true" : undefined,
-        };
-
-        // Remove undefined env keys
-        Object.keys(envConfig).forEach(key => (envConfig as any)[key] === undefined && delete (envConfig as any)[key]);
-
-        // 2. Config Dict (snake_case needs mapping to camelCase?)
-        // Assuming configDict might be passed with camelCase or snake_case keys. Pydantic accepts kwargs.
-        // Let's assume configDict uses camelCase or we map it. 
-        // Spec naming convention mapping tells us fields.
-        // Let's rely on options being passed correctly.
-
-        // Merge: Defaults (handled by Zod) < ConfigDict < Env < Options
-        // Wait, typical priority: Args (options) > Env > Config
-
-        const merged = {
-            ...configDict,
-            ...envConfig,
-            ...options
+        const merged: any = {
+            vendorType: resolve(options.vendorType, ENV_ELASTIC_VENDOR_TYPE, configDict, "vendorType", VENDOR_ON_PREM),
+            host: resolve(options.host, ENV_ELASTIC_HOST, configDict, "host", "localhost"),
+            port: resolveInt(options.port, ENV_ELASTIC_PORT, configDict, "port", 9200),
+            scheme: resolve(options.scheme, ENV_ELASTIC_SCHEME, configDict, "scheme", "https"),
+            cloudId: resolve(options.cloudId, ENV_ELASTIC_CLOUD_ID, configDict, "cloudId", null),
+            apiKey: resolve(options.apiKey, ENV_ELASTIC_API_KEY, configDict, "apiKey", null),
+            username: resolve(options.username, ENV_ELASTIC_USERNAME, configDict, "username", null),
+            password: resolve(options.password, ENV_ELASTIC_PASSWORD, configDict, "password", null) || resolve(null, ENV_ELASTIC_ACCESS_KEY, null, null, null),
+            apiAuthType: resolve(options.apiAuthType, ENV_ELASTIC_API_AUTH_TYPE, configDict, "apiAuthType", null),
+            useTls: resolveBool(options.useTls, ENV_ELASTIC_USE_TLS, configDict, "useTls", false),
+            verifyCerts: resolveBool(options.verifyCerts, ENV_ELASTIC_VERIFY_CERTS, configDict, "verifyCerts", false),
+            sslShowWarn: resolveBool(options.sslShowWarn, ENV_ELASTIC_SSL_SHOW_WARN, configDict, "sslShowWarn", false),
+            caCerts: resolve(options.caCerts, ENV_ELASTIC_CA_CERTS, configDict, "caCerts", null),
+            clientCert: resolve(options.clientCert, ENV_ELASTIC_CLIENT_CERT, configDict, "clientCert", null),
+            clientKey: resolve(options.clientKey, ENV_ELASTIC_CLIENT_KEY, configDict, "clientKey", null),
+            index: resolve(options.index, ENV_ELASTIC_INDEX, configDict, "index", null),
+            verifyClusterConnection: resolveBool(options.verifyClusterConnection, ENV_ELASTIC_VERIFY_CLUSTER, configDict, "verifyClusterConnection", false),
+            requestTimeout: resolveFloat(options.requestTimeout, ENV_ELASTIC_REQUEST_TIMEOUT, configDict, "requestTimeout", 30000),
+            connectTimeout: resolveFloat(options.connectTimeout, ENV_ELASTIC_CONNECT_TIMEOUT, configDict, "connectTimeout", 10000),
+            maxRetries: resolveInt(options.maxRetries, ENV_ELASTIC_MAX_RETRIES, configDict, "maxRetries", 3),
+            retryOnTimeout: resolveBool(options.retryOnTimeout, ENV_ELASTIC_RETRY_ON_TIMEOUT, configDict, "retryOnTimeout", true),
         };
 
         const parsed = ElasticsearchConfigSchema.safeParse(merged);

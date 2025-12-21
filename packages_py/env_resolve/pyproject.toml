@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "env_resolve"
+version = "0.1.0"
+description = "Standardized environment variable resolution for Python packages"
+authors = ["Deepmind Agent <agent@deepmind.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
