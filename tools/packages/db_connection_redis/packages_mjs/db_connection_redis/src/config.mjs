@@ -112,17 +112,21 @@ export class RedisConfig {
         if (!this.useTls) return undefined;
 
         const ssl = {};
-        if (this.sslCertReqs === 'none') {
-            ssl.rejectUnauthorized = false;
-        } else {
+        // Similar to PostgreSQL ssl_mode:
+        // - 'none' or 'required': use TLS but don't verify certificate
+        // - 'verify-ca' or 'verify-full': verify certificate
+        if (this.sslCertReqs === 'verify-ca' || this.sslCertReqs === 'verify-full') {
             ssl.rejectUnauthorized = true;
+        } else {
+            // 'none', 'required', or other - don't verify cert (just encrypt)
+            ssl.rejectUnauthorized = false;
         }
 
         if (this.sslCaCerts) {
             ssl.ca = [this.sslCaCerts];
         }
 
-        if (!this.sslCheckHostname) {
+        if (!this.sslCheckHostname || this.sslCertReqs !== 'verify-full') {
             ssl.checkServerIdentity = () => undefined;
         }
 
