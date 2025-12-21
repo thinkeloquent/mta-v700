@@ -23,3 +23,29 @@ async def app_yaml_config_json():
     """AppYamlConfig contents as JSON."""
     config = AppYamlConfig.get_instance()
     return config.get_all()
+
+
+
+EXPOSE_YAML_CONFIG_COMPUTE = {"proxy_url"}
+
+
+@router.get("/compute/{name}")
+async def app_yaml_config_compute(name: str):
+    """Get a computed configuration value."""
+    if name not in EXPOSE_YAML_CONFIG_COMPUTE:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Access denied to this computed property")
+
+    config = AppYamlConfig.get_instance()
+    try:
+        val = config.get_computed(name)
+        return {"name": name, "value": val}
+    except Exception as e:
+        # Catching generic exception as specific exceptions might not be imported here
+        # Ideally we should import ComputedKeyNotFoundError
+        from ...app_yaml_config import AppYamlConfig as AppConfigModule
+        # Re-import to be safe or check exception type string
+        if "ComputedKeyNotFoundError" in str(type(e)):
+             from fastapi import HTTPException
+             raise HTTPException(status_code=404, detail=f"Computed key '{name}' not found")
+        raise e
