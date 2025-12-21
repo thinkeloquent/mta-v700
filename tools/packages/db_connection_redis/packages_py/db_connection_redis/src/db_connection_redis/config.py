@@ -64,7 +64,11 @@ class RedisConfig:
         self.db = int(self._resolve(db, "REDIS_DB", "REDIS_DATABASE", config, "db", 0))
         self.unix_socket_path = self._resolve(unix_socket_path, None, None, config, "unix_socket_path", None)
         
-        self.use_ssl = self._resolve_bool(use_ssl, "REDIS_SSL", "REDIS_USE_TLS", config, "use_ssl", False)
+        # Check multiple env var names for SSL (REDIS_SSL, REDIS_USE_TLS, REDIS_TLS, REDIS_USE_SSL)
+        self.use_ssl = self._resolve_bool(use_ssl, "REDIS_SSL", "REDIS_TLS", config, "use_ssl", False)
+        if not self.use_ssl:
+            # Also check alternative names
+            self.use_ssl = self._resolve_bool(None, "REDIS_USE_TLS", "REDIS_USE_SSL", config, "use_ssl", False)
         self.ssl_cert_reqs = self._resolve(ssl_cert_reqs, "REDIS_SSL_CERT_REQS", None, config, "ssl_cert_reqs", "none")
         self.ssl_ca_certs = self._resolve(ssl_ca_certs, "REDIS_SSL_CA_CERTS", None, config, "ssl_ca_certs", None)
         self.ssl_check_hostname = self._resolve_bool(ssl_check_hostname, "REDIS_SSL_CHECK_HOSTNAME", None, config, "ssl_check_hostname", False)

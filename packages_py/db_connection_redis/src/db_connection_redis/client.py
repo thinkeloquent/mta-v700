@@ -41,7 +41,7 @@ async def check_connection(config: Optional[RedisConfig] = None) -> bool:
         logger.error(f"Redis health check failed: {e}")
         return False
     finally:
-        await client.close()
+        await client.aclose()
 
 def format_connection_error(error: Exception) -> str:
     """Format Redis connection error for logging."""
