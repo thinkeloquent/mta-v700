@@ -463,33 +463,63 @@ main() {
     local combined_pattern
     combined_pattern=$(IFS='|'; echo "${REAL_SECRET_PATTERNS[*]}")
 
-    while IFS=: read -r file line_num match; do
-        [[ -z "$match" ]] && continue
-        [[ -z "$file" ]] && continue
-        is_excluded "$file" && continue
+    # For staged/diff modes, only scan the specific changed files
+    # For --all mode, scan the entire directory recursively
+    if [[ "$SCAN_MODE" == "all" ]]; then
+        while IFS=: read -r file line_num match; do
+            [[ -z "$match" ]] && continue
+            [[ -z "$file" ]] && continue
+            is_excluded "$file" && continue
 
-        # Determine which pattern matched for reporting
-        local matched_pattern="API key/token pattern"
-        for p in "${REAL_SECRET_PATTERNS[@]}"; do
-            if echo "$match" | grep -qE "$p"; then
-                matched_pattern="$p"
-                break
+            # Determine which pattern matched for reporting
+            local matched_pattern="API key/token pattern"
+            for p in "${REAL_SECRET_PATTERNS[@]}"; do
+                if echo "$match" | grep -qE "$p"; then
+                    matched_pattern="$p"
+                    break
+                fi
+            done
+
+            if is_mock_secret "$match"; then
+                log_finding "MOCK" "$file" "$line_num" "$(mask_secret "$match")" "$matched_pattern"
+            else
+                log_finding "HIGH" "$file" "$line_num" "$(mask_secret "$match")" "$matched_pattern"
             fi
-        done
+        done < <(grep -rHnEo "$combined_pattern" \
+            --include="*.py" --include="*.mjs" --include="*.js" --include="*.ts" \
+            --include="*.json" --include="*.yaml" --include="*.yml" --include="*.toml" \
+            --include="*.sh" --include="*.bash" --include="*.env" --include="*.cfg" \
+            --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=__pycache__ \
+            --exclude-dir=.git --exclude-dir=dist --exclude-dir=build \
+            --exclude-dir=__STAGE__ --exclude-dir=__SPECS__ --exclude-dir=__REVIEW__ \
+            . 2>/dev/null | sed 's|^\./||' || true)
+    else
+        # Scan only the specific files (staged or diff mode)
+        while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            is_excluded "$file" && continue
+            [[ ! -f "$PROJECT_ROOT/$file" ]] && continue
 
-        if is_mock_secret "$match"; then
-            log_finding "MOCK" "$file" "$line_num" "$(mask_secret "$match")" "$matched_pattern"
-        else
-            log_finding "HIGH" "$file" "$line_num" "$(mask_secret "$match")" "$matched_pattern"
-        fi
-    done < <(grep -rHnEo "$combined_pattern" \
-        --include="*.py" --include="*.mjs" --include="*.js" --include="*.ts" \
-        --include="*.json" --include="*.yaml" --include="*.yml" --include="*.toml" \
-        --include="*.sh" --include="*.bash" --include="*.env" --include="*.cfg" \
-        --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=__pycache__ \
-        --exclude-dir=.git --exclude-dir=dist --exclude-dir=build \
-        --exclude-dir=__STAGE__ --exclude-dir=__SPECS__ --exclude-dir=__REVIEW__ \
-        . 2>/dev/null | sed 's|^\./||' || true)
+            while IFS=: read -r line_num match; do
+                [[ -z "$match" ]] && continue
+
+                # Determine which pattern matched for reporting
+                local matched_pattern="API key/token pattern"
+                for p in "${REAL_SECRET_PATTERNS[@]}"; do
+                    if echo "$match" | grep -qE "$p"; then
+                        matched_pattern="$p"
+                        break
+                    fi
+                done
+
+                if is_mock_secret "$match"; then
+                    log_finding "MOCK" "$file" "$line_num" "$(mask_secret "$match")" "$matched_pattern"
+                else
+                    log_finding "HIGH" "$file" "$line_num" "$(mask_secret "$match")" "$matched_pattern"
+                fi
+            done < <(grep -nEo "$combined_pattern" "$PROJECT_ROOT/$file" 2>/dev/null || true)
+        done <<< "$files"
+    fi
 
     # Skip credential assignment scanning in full mode (too slow/memory intensive)
     # scan_credential_assignments "$files"
