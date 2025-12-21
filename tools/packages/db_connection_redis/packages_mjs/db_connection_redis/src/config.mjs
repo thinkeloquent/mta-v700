@@ -53,8 +53,21 @@ export class RedisConfig {
 
         this.sslCheckHostname = resolveBool(options.sslCheckHostname, ['REDIS_SSL_CHECK_HOSTNAME'], options, 'sslCheckHostname', DEFAULT_CONFIG.sslCheckHostname);
 
-        this.socketTimeout = resolveFloat(options.socketTimeout, ['REDIS_SOCKET_TIMEOUT'], options, 'socketTimeout', DEFAULT_CONFIG.socketTimeout);
-        this.socketConnectTimeout = resolveFloat(options.socketConnectTimeout, [], options, 'socketConnectTimeout', DEFAULT_CONFIG.socketConnectTimeout);
+        // Socket timeout from env is in seconds, convert to milliseconds for ioredis
+        let socketTimeoutRaw = resolveFloat(options.socketTimeout, ['REDIS_SOCKET_TIMEOUT'], options, 'socketTimeout', null);
+        if (socketTimeoutRaw !== null && socketTimeoutRaw < 100) {
+            // If value is small (< 100), assume it's in seconds and convert to ms
+            this.socketTimeout = socketTimeoutRaw * 1000;
+        } else {
+            this.socketTimeout = socketTimeoutRaw || DEFAULT_CONFIG.socketTimeout;
+        }
+
+        let socketConnectTimeoutRaw = resolveFloat(options.socketConnectTimeout, ['REDIS_SOCKET_CONNECT_TIMEOUT'], options, 'socketConnectTimeout', null);
+        if (socketConnectTimeoutRaw !== null && socketConnectTimeoutRaw < 100) {
+            this.socketConnectTimeout = socketConnectTimeoutRaw * 1000;
+        } else {
+            this.socketConnectTimeout = socketConnectTimeoutRaw || DEFAULT_CONFIG.socketConnectTimeout;
+        }
         this.retryOnTimeout = resolveBool(options.retryOnTimeout, [], options, 'retryOnTimeout', DEFAULT_CONFIG.retryOnTimeout);
 
         this.maxConnections = resolveInt(options.maxConnections, ['REDIS_MAX_CONNECTIONS'], options, 'maxConnections', DEFAULT_CONFIG.maxConnections);
