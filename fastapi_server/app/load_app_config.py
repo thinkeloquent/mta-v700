@@ -24,7 +24,7 @@ try:
         files=["base.yml", "server.{APP_ENV}.yaml"],
         config_dir=config_dir,
         computed_definitions={
-            "proxy_url": lambda c: c.get_nested("network", "proxy_urls", app_env)
+            "proxy_url": lambda c: c.get_nested("global", "network", "proxy_urls", app_env)
         }
     )
     config = AppYamlConfig.get_instance()

@@ -31,7 +31,7 @@ try {
     files: ['base.yml', 'server.{APP_ENV}.yaml'],
     configDir,
     computedDefinitions: {
-      proxy_url: (c) => c.getNested(['network', 'proxy_urls', appEnv]),
+      proxy_url: (c) => c.getNested(['global', 'network', 'proxy_urls', appEnv]),
     },
   });
 

@@ -13,11 +13,12 @@ providers:
   gemini_openai:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
     model: "gemini-2.0-flash"
-    env_api_key: "GEMINI_API_KEY"
+    api_key: null
     api_auth_type: "bearer"         # bearer, basic, x-api-key, custom
     token_resolver: "static"        # static (default), startup, request
+    overwrite_from_env:
+      api_key: "GEMINI_API_KEY"
     proxy_url: false  # Disabled - no proxy running
-
     client:
       # Override timeout for this provider only
       timeout_seconds: 120.0
@@ -252,49 +253,38 @@ providers:
     #     dev: "http://localhost:8080"
     #   cert_verify: false
 
-# Default provider for backward compatibility
-default_provider: "gemini"
-
-# =============================================================================
-# Client Configuration
-# =============================================================================
-
-client:
-  # Timeout values in seconds (Python) / milliseconds (MJS)
-  timeout_seconds: 60.0
-  timeout_ms: 60000
-  # Keep-alive timeout
-  keep_alive_timeout_seconds: 5.0
-  keep_alive_timeout_ms: 5000
-  # Connection pool
-  max_connections: 10
-
-# =============================================================================
-# Display Configuration
-# =============================================================================
-
-display:
-  separator_char: "="
-  thin_separator_char: "-"
-  separator_length: 60
-
 # =============================================================================
 # Proxy Configuration
 # =============================================================================
+global:
+  client:
+    # Timeout values in seconds (Python) / milliseconds (MJS)
+    timeout_seconds: 60.0
+    timeout_ms: 60000
+    # Keep-alive timeout
+    keep_alive_timeout_seconds: 5.0
+    keep_alive_timeout_ms: 5000
+    # Connection pool
+    max_connections: 10
 
-network:
-  default_environment: 'dev'
-  proxy_urls:
-    local: ''
-    dev: 'http://proxy.dev.local:8080'
-    qa: 'http://proxy.qa.local:8080'
-    prod: 'http://proxy.prod.local:8080'
-  ca_bundle: "/path/to/custom-ca.crt"
-  cert: null
-  cert_verify: true
-  agent_proxy:
-    http_proxy: 'http://proxy.dev.local:8080'
-    https_proxy: 'http://proxy.dev.local:8080'
+  display:
+    separator_char: "="
+    thin_separator_char: "-"
+    separator_length: 60
+
+  network:
+    default_environment: 'dev'
+    proxy_urls:
+      local: ''
+      dev: 'http://proxy.dev.local:8080'
+      qa: 'http://proxy.qa.local:8080'
+      prod: 'http://proxy.prod.local:8080'
+    ca_bundle: "/path/to/custom-ca.crt"
+    cert: null
+    cert_verify: true
+    agent_proxy:
+      http_proxy: 'http://proxy.dev.local:8080'
+      https_proxy: 'http://proxy.dev.local:8080'
 
 # =============================================================================
 # Storage Providers Configuration
