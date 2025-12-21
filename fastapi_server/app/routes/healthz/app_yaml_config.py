@@ -49,3 +49,26 @@ async def app_yaml_config_compute(name: str):
              from fastapi import HTTPException
              raise HTTPException(status_code=404, detail=f"Computed key '{name}' not found")
         raise e
+
+
+EXPOSE_YAML_CONFIG_PROVIDER = {"gemini_openai"}
+
+
+@router.get("/provider/{name}")
+async def app_yaml_config_provider(name: str):
+    """Get a provider configuration."""
+    if name not in EXPOSE_YAML_CONFIG_PROVIDER:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Access denied to this provider configuration")
+
+    try:
+        from dataclasses import asdict
+        from ...app_yaml_config import get_provider, ProviderNotFoundError
+        
+        result = get_provider(name)
+        return asdict(result)
+    except Exception as e:
+        if "ProviderNotFoundError" in str(type(e)):
+             from fastapi import HTTPException
+             raise HTTPException(status_code=404, detail=f"Provider '{name}' not found")
+        raise e

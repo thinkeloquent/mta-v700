@@ -2,7 +2,7 @@
  * AppYamlConfig healthz routes.
  */
 
-import { AppYamlConfig } from '@internal/app-yaml-config';
+import { AppYamlConfig, getProvider } from '@internal/app-yaml-config';
 
 export default async function appYamlConfigRoutes(fastify) {
   fastify.get('/healthz/admin/app-yaml-config/status', async (request, reply) => {
@@ -39,6 +39,29 @@ export default async function appYamlConfigRoutes(fastify) {
       if (e.name === 'ComputedKeyNotFoundError' || e.message.includes('not defined')) {
         reply.code(404);
         return { error: `Computed key '${name}' not found` };
+      }
+      throw e;
+    }
+  });
+
+
+  const EXPOSE_YAML_CONFIG_PROVIDER = ['gemini_openai'];
+
+  fastify.get('/healthz/admin/app-yaml-config/provider/:name', async (request, reply) => {
+    const { name } = request.params;
+
+    if (!EXPOSE_YAML_CONFIG_PROVIDER.includes(name)) {
+      reply.code(403);
+      return { error: 'Access denied to this provider configuration' };
+    }
+
+    try {
+      const result = getProvider(name);
+      return result;
+    } catch (e) {
+      if (e.name === 'ProviderNotFoundError') {
+        reply.code(404);
+        return { error: `Provider '${name}' not found` };
       }
       throw e;
     }
