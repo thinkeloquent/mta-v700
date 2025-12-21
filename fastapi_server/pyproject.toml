@@ -5,7 +5,7 @@ description = "FastAPI Hello World Server"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",\
+    "uvicorn[standard]>=0.24.0",
     "greenlet (>=3.3.0,<4.0.0)",
     "vault-file",
     "app-yaml-config",
@@ -36,7 +36,7 @@ python = "^3.11"
 fastapi = ">=0.104.0"
 uvicorn = {version = ">=0.24.0", extras = ["standard"]}
 python-dotenv = "^1.0.0"
-deepmerge = "^1.1.0"
+deepmerge = "^2.0"
 # SQLAlchemy with async support - pinned to match reference implementation
 sqlalchemy = {version = "==2.0.22", extras = ["asyncio"]}
 # Async PostgreSQL driver

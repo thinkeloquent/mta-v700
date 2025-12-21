@@ -15,10 +15,11 @@ from sqlalchemy import Column, Integer, String, DateTime, Text, select
 from sqlalchemy.orm import declarative_base
 
 from db_connection_postgres import (
-    DatabaseConfig,
+    PostgresConfig,
     DatabaseManager,
     get_db_manager,
 )
+
 
 # SQLAlchemy Base for models
 Base = declarative_base()
@@ -76,7 +77,7 @@ async def lifespan(app: FastAPI):
     global db_manager
 
     # Initialize database manager on startup
-    config = DatabaseConfig(
+    config = PostgresConfig(
         host=os.getenv("POSTGRES_HOST", "localhost"),
         port=int(os.getenv("POSTGRES_PORT", "5432")),
         user=os.getenv("POSTGRES_USER", "postgres"),

@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter
 from db_connection_postgres import (
-    DatabaseConfig,
-    DatabaseManager,
+    PostgresConfig,
+    get_db_manager,
+    DatabaseConnectionError
 )
 
 router = APIRouter(prefix="/healthz/admin/db-connection-postgres", tags=["Admin"])
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/healthz/admin/db-connection-postgres", tags=["Admin"
 async def postgres_status():
     """Postgres connection status."""
     try:
-        config = DatabaseConfig()
+        config = PostgresConfig()
         manager = DatabaseManager(config)
         is_healthy = await manager.test_connection()
         await manager.dispose()
@@ -35,7 +36,7 @@ async def postgres_status():
 @router.get("/config")
 async def postgres_config():
     """Postgres configuration."""
-    config = DatabaseConfig()
+    config = PostgresConfig()
     return {
         "host": config.host,
         "port": config.port,

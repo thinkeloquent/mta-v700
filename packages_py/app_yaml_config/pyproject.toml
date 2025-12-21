@@ -13,7 +13,7 @@ packages = [{include = "app_yaml_config", from = "src"}]
 python = "^3.11"
 pyyaml = "^6.0"
 python-dotenv = "^1.0.0"
-deepmerge = "^1.1.0"
+deepmerge = "^2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
