@@ -11,15 +11,16 @@
         "lint": "biome check src/"
     },
     "dependencies": {
-        "zod": "^3.22.0",
         "@elastic/elasticsearch": "^8.0.0",
-        "@elastic/transport": "^8.0.0"
+        "@elastic/transport": "^8.0.0",
+        "@opensearch-project/opensearch": "^2.13.0",
+        "zod": "^3.22.0"
     },
     "devDependencies": {
+        "@biomejs/biome": "^1.9.0",
         "@types/node": "^20.0.0",
-        "typescript": "^5.0.0",
-        "vitest": "^1.0.0",
         "@vitest/coverage-v8": "^1.0.0",
-        "@biomejs/biome": "^1.9.0"
+        "typescript": "^5.0.0",
+        "vitest": "^1.0.0"
     }
 }

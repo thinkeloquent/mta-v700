@@ -1,6 +1,10 @@
-import { Client, ClientOptions } from "@elastic/elasticsearch";
+import { Client as ElasticsearchClient, ClientOptions } from "@elastic/elasticsearch";
+import { Client as OpenSearchClient } from "@opensearch-project/opensearch";
 import { ElasticsearchConfig, ElasticsearchConfigOptions } from "./config";
-import { VENDOR_ELASTIC_CLOUD } from "./constants";
+import { VENDOR_ELASTIC_CLOUD, VENDOR_DIGITAL_OCEAN } from "./constants";
+
+// Union type for both clients
+type SearchClient = ElasticsearchClient | OpenSearchClient;
 
 export class ElasticsearchConnectionError extends Error {
     constructor(message: string) {
@@ -9,9 +13,29 @@ export class ElasticsearchConnectionError extends Error {
     }
 }
 
+function _getOpenSearchOptions(cfg: ElasticsearchConfig): any {
+    // Build options compatible with @opensearch-project/opensearch
+    const opts: any = {
+        node: cfg.getBaseUrl(),
+        ssl: {
+            rejectUnauthorized: cfg.options.verifyCerts || false,
+        },
+    };
+
+    // Authentication - OpenSearch uses auth object with username/password
+    if (cfg.options.username && cfg.options.password) {
+        opts.auth = {
+            username: cfg.options.username,
+            password: cfg.options.password,
+        };
+    }
+
+    return opts;
+}
+
 export async function getElasticsearchClient(
     config?: Partial<ElasticsearchConfigOptions> | ElasticsearchConfig
-): Promise<Client> {
+): Promise<SearchClient> {
     let cfg: ElasticsearchConfig;
     if (config instanceof ElasticsearchConfig) {
         cfg = config;
@@ -23,7 +47,8 @@ export async function getElasticsearchClient(
 
     if (cfg.options.verifyClusterConnection) {
         try {
-            const ping = await client.ping();
+            // Use any to handle both Elasticsearch and OpenSearch client types
+            const ping = await (client as any).ping();
             if (!ping) {
                 throw new Error("Ping returned false");
             }
@@ -37,7 +62,7 @@ export async function getElasticsearchClient(
 
 export function getSyncElasticsearchClient(
     config?: Partial<ElasticsearchConfigOptions> | ElasticsearchConfig
-): Client {
+): SearchClient {
     let cfg: ElasticsearchConfig;
     if (config instanceof ElasticsearchConfig) {
         cfg = config;
@@ -45,32 +70,41 @@ export function getSyncElasticsearchClient(
         cfg = new ElasticsearchConfig(config);
     }
 
-    if (cfg.options.vendorType === VENDOR_ELASTIC_CLOUD) {
+    // Use OpenSearch client for DigitalOcean
+    if (cfg.options.vendorType === VENDOR_DIGITAL_OCEAN) {
+        return _createOpenSearchClient(cfg);
+    } else if (cfg.options.vendorType === VENDOR_ELASTIC_CLOUD) {
         return _createSyncCloudClient(cfg);
     } else {
+        // ON_PREM and others use Elasticsearch client
         return _createSyncUrlClient(cfg);
     }
 }
 
-function _createSyncCloudClient(cfg: ElasticsearchConfig): Client {
-    const opts = cfg.getConnectionOptions();
-    return new Client(opts);
+function _createOpenSearchClient(cfg: ElasticsearchConfig): OpenSearchClient {
+    const opts = _getOpenSearchOptions(cfg);
+    return new OpenSearchClient(opts);
 }
 
-function _createSyncUrlClient(cfg: ElasticsearchConfig): Client {
+function _createSyncCloudClient(cfg: ElasticsearchConfig): ElasticsearchClient {
     const opts = cfg.getConnectionOptions();
+    return new ElasticsearchClient(opts);
+}
 
+function _createSyncUrlClient(cfg: ElasticsearchConfig): ElasticsearchClient {
+    const opts = cfg.getConnectionOptions();
     // Ensure we passed node/hosts logic in config
-    return new Client(opts);
+    return new ElasticsearchClient(opts);
 }
 
 export async function checkConnection(
     config?: ElasticsearchConfig
 ): Promise<{ success: boolean; info?: any; error?: string }> {
-    let client: Client | null = null;
+    let client: SearchClient | null = null;
     try {
         client = await getElasticsearchClient(config);
-        const info = await client.info();
+        // Use any to handle both Elasticsearch and OpenSearch client types
+        const info = await (client as any).info();
         return { success: true, info };
     } catch (e: any) {
         const host = config?.options?.host || "unknown";
@@ -80,7 +114,7 @@ export async function checkConnection(
         };
     } finally {
         if (client) {
-            await client.close();
+            await (client as any).close();
         }
     }
 }

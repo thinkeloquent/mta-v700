@@ -171,7 +171,7 @@ sync_package() {
         local rsync_opts="-a --delete"
 
         # Exclude test folders (test/ for mjs, tests/ for py)
-        rsync_opts="$rsync_opts --exclude=test/ --exclude=tests/"
+        rsync_opts="$rsync_opts --exclude=test/ --exclude=tests/ --exclude=node_modules/ --exclude=.venv/ --exclude=__pycache__/"
 
         if $VERBOSE; then
             rsync_opts="$rsync_opts -v"
