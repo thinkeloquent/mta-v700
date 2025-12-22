@@ -7,6 +7,20 @@
 # =============================================================================
 expose_yaml_config_provider:
   - gemini_openai
+  - openai
+  - anthropic
+  - figma
+  - github
+  - jira
+  - confluence
+  - postgres
+  - redis
+  - saucelabs
+  - servicenow
+  - rally
+  - statsig
+  - sonar
+  - akamai
 
 expose_yaml_config_compute:
   - proxy_url
@@ -16,6 +30,8 @@ expose_yaml_config_service:
 
 expose_yaml_config_storage:
   - redis
+  - postgres
+  - elasticsearch
 
 # =============================================================================
 # Provider Configuration
@@ -197,80 +213,7 @@ providers:
     token_resolver: "static"
     proxy_url: false  # Disabled - no proxy running
 
-  elasticsearch:
-    # Elasticsearch/OpenSearch cluster
-    # Vendor types: on-prem | elastic-cloud | elastic-transport | digital-ocean
-    vendor_type: null  # Auto-detected from cloud_id or port
-    env_vendor_type: "ELASTIC_DB_VENDOR_TYPE"
-
-    # Elastic Cloud (for elastic-cloud vendor)
-    cloud_id: null
-    env_cloud_id: "ELASTIC_DB_CLOUD_ID"
-
-    # Connection URL (overrides host/port/scheme)
-    base_url: null
-    env_base_url: "ELASTICSEARCH_URL"
-    env_base_url_fallbacks:
-      - "ELASTIC_DB_URL"
-
-    # Host/Port/Scheme (used if base_url not set)
-    host: null
-    env_host: "ELASTIC_DB_HOST"
-    port: null
-    env_port: "ELASTIC_DB_PORT"
-    scheme: null
-    env_scheme: "ELASTIC_DB_SCHEMA"
-
-    # Authentication
-    api_key: null
-    env_api_key: "ELASTIC_DB_ACCESS_KEY"
-    env_api_key_fallbacks:
-      - "ELASTICSEARCH_API_KEY"
-      - "ES_API_KEY"
-      - "OPENSEARCH_API_KEY"
-    username: null
-    env_username: "ELASTIC_DB_USERNAME"
-    password: null
-    env_password: "ELASTIC_DB_PASSWORD"
-
-    # SSL/TLS
-    use_tls: null
-    env_use_tls: "ELASTIC_DB_TLS"
-    verify_certs: null
-    env_verify_certs: "ELASTIC_DB_VERIFY_CERTS"
-    ssl_show_warn: null
-    env_ssl_show_warn: "ELASTIC_DB_SSL_SHOW_WARN"
-
-    # Index
-    index: null
-    env_index: "ELASTIC_DB_INDEX"
-
-    # Authentication type
-    # "basic" forces basic_auth, "bearer"/"api_key" uses api_key
-    api_auth_type: "basic"
-    env_api_auth_type: "ELASTIC_DB_AUTH_TYPE"
-
-    # Health check options
-    # verify_cluster_connection: if true, also runs cluster.health() check
-    # Default is false - ping() and info() are sufficient for basic connectivity
-    verify_cluster_connection: false
-    env_verify_cluster_connection: "ELASTIC_DB_VERIFY_CLUSTER"
-
-    # Legacy fields (for backward compatibility with health check)
-    health_endpoint: "/"
-    token_resolver: "static"
-    proxy_url: false
-
-    # Example: Full overrides for on-prem/VPN provider
-    # client:
-    #   timeout_seconds: 120.0
-    #   timeout_ms: 120000
-    # network:
-    #   default_environment: "dev"
-    #   proxy_urls:
-    #     dev: "http://localhost:8080"
-    #   cert_verify: false
-
+  
 # =============================================================================
 # Proxy Configuration
 # =============================================================================
@@ -415,8 +358,46 @@ storage:
         - POSTGRES_HOSTNAME
         - POSTGRES_HOST
 
+  elasticsearch:
+      # Vendor types: on-prem | elastic-cloud | elastic-transport | digital-ocean
+      vendor_type: null  # Auto-detected from cloud_id or port
+      cloud_id: null
+      base_url: null
+      host: null
+      env_host: "ELASTIC_DB_HOST"
+      port: null
+      env_port: "ELASTIC_DB_PORT"
+      scheme: null
+      api_key: null
+      username: null
+      env_username: "ELASTIC_DB_USERNAME"
+      password: null
+      use_tls: null
+      env_use_tls: "ELASTIC_DB_TLS"
+      verify_certs: null
+      ssl_show_warn: null
+      index: null
+      api_auth_type: "basic"
+      verify_cluster_connection: false
 
-
+      overwrite_from_env:
+        cloud_id: "ELASTIC_DB_CLOUD_ID"
+        vendor_type: "ELASTIC_DB_VENDOR_TYPE"
+        scheme: "ELASTIC_DB_SCHEMA"
+        base_url:
+          - "ELASTICSEARCH_URL"
+          - "ELASTIC_DB_URL"
+        verify_cluster_connection: ELASTIC_DB_VERIFY_CLUSTER
+        api_auth_type: "ELASTIC_DB_AUTH_TYPE"
+        index: "ELASTIC_DB_INDEX"
+        ssl_show_warn: "ELASTIC_DB_SSL_SHOW_WARN"
+        verify_certs: "ELASTIC_DB_VERIFY_CERTS"
+        password: "ELASTIC_DB_PASSWORD"
+        api_key: 
+          - "ELASTICSEARCH_API_KEY"
+          - "ES_API_KEY"
+          - "OPENSEARCH_API_KEY"
+          - "ELASTIC_DB_ACCESS_KEY"
 
 # =============================================================================
 # Services Configuration (Downstream Service Configs)
@@ -515,10 +496,3 @@ services:
     pagination:
       per_page: 30
       page: 1
-
-  # Template for adding new services:
-  # service_name:
-  #   env_custom_var: "ENV_VAR_NAME"
-  #   headers:
-  #     Custom-Header: "value"
-  #   custom_key: "custom_value"
