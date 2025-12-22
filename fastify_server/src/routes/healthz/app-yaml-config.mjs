@@ -21,12 +21,15 @@ export default async function appYamlConfigRoutes(fastify) {
   });
 
 
-  const EXPOSE_YAML_CONFIG_COMPUTE = ['proxy_url'];
+  const getExposeComputeAllowlist = () => {
+    const config = AppYamlConfig.getInstance();
+    return config.get('expose_yaml_config_compute') || [];
+  };
 
   fastify.get('/healthz/admin/app-yaml-config/compute/:name', async (request, reply) => {
     const { name } = request.params;
 
-    if (!EXPOSE_YAML_CONFIG_COMPUTE.includes(name)) {
+    if (!getExposeComputeAllowlist().includes(name)) {
       reply.code(403);
       return { error: 'Access denied to this computed property' };
     }
@@ -45,12 +48,15 @@ export default async function appYamlConfigRoutes(fastify) {
   });
 
 
-  const EXPOSE_YAML_CONFIG_PROVIDER = ['gemini_openai'];
+  const getExposeProviderAllowlist = () => {
+    const config = AppYamlConfig.getInstance();
+    return config.get('expose_yaml_config_provider') || [];
+  };
 
   fastify.get('/healthz/admin/app-yaml-config/provider/:name', async (request, reply) => {
     const { name } = request.params;
 
-    if (!EXPOSE_YAML_CONFIG_PROVIDER.includes(name)) {
+    if (!getExposeProviderAllowlist().includes(name)) {
       reply.code(403);
       return { error: 'Access denied to this provider configuration' };
     }

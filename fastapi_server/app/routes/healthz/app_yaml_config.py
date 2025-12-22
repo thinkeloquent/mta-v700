@@ -26,13 +26,16 @@ async def app_yaml_config_json():
 
 
 
-EXPOSE_YAML_CONFIG_COMPUTE = {"proxy_url"}
+def _get_expose_compute_allowlist() -> set:
+    """Get allowlist from YAML config."""
+    config = AppYamlConfig.get_instance()
+    return set(config.get("expose_yaml_config_compute") or [])
 
 
 @router.get("/compute/{name}")
 async def app_yaml_config_compute(name: str):
     """Get a computed configuration value."""
-    if name not in EXPOSE_YAML_CONFIG_COMPUTE:
+    if name not in _get_expose_compute_allowlist():
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Access denied to this computed property")
 
@@ -51,13 +54,16 @@ async def app_yaml_config_compute(name: str):
         raise e
 
 
-EXPOSE_YAML_CONFIG_PROVIDER = {"gemini_openai"}
+def _get_expose_provider_allowlist() -> set:
+    """Get allowlist from YAML config."""
+    config = AppYamlConfig.get_instance()
+    return set(config.get("expose_yaml_config_provider") or [])
 
 
 @router.get("/provider/{name}")
 async def app_yaml_config_provider(name: str):
     """Get a provider configuration."""
-    if name not in EXPOSE_YAML_CONFIG_PROVIDER:
+    if name not in _get_expose_provider_allowlist():
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Access denied to this provider configuration")
 

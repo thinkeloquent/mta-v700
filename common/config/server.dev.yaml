@@ -2,6 +2,16 @@
 # Shared static configuration values for Python and MJS server packages
 
 # =============================================================================
+# Healthz Route Access Control
+# Allowlists for exposing provider/compute values via healthz admin endpoints
+# =============================================================================
+expose_yaml_config_provider:
+  - gemini_openai
+
+expose_yaml_config_compute:
+  - proxy_url
+
+# =============================================================================
 # Provider Configuration
 # All external API endpoints must be defined here (no hardcoded fallbacks)
 # =============================================================================
