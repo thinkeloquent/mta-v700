@@ -7,7 +7,8 @@ from .validators import (
     ComputedKeyNotFoundError,
     CircularDependencyError,
     ProviderNotFoundError,
-    ServiceNotFoundError
+    ServiceNotFoundError,
+    StorageNotFoundError
 )
 from .get_provider import (
     ProviderOptions,
@@ -20,6 +21,12 @@ from .get_service import (
     ServiceResult,
     ServiceConfig,
     get_service
+)
+from .get_storage import (
+    StorageOptions,
+    StorageResult,
+    StorageConfig,
+    get_storage
 )
 
 __all__ = [
@@ -40,5 +47,10 @@ __all__ = [
     "ServiceOptions",
     "ServiceResult",
     "ServiceConfig",
-    "get_service"
+    "get_service",
+    "StorageNotFoundError",
+    "StorageOptions",
+    "StorageResult",
+    "StorageConfig",
+    "get_storage"
 ]

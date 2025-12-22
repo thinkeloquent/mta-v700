@@ -14,6 +14,9 @@ expose_yaml_config_compute:
 expose_yaml_config_service:
   - confluence
 
+expose_yaml_config_storage:
+  - redis
+
 # =============================================================================
 # Provider Configuration
 # All external API endpoints must be defined here (no hardcoded fallbacks)

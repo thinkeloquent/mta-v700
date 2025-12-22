@@ -27,3 +27,7 @@ class ProviderNotFoundError(Exception):
 class ServiceNotFoundError(Exception):
     """Raised when a requested service is not found in configuration."""
     pass
+
+class StorageNotFoundError(Exception):
+    """Raised when a requested storage is not found in configuration."""
+    pass

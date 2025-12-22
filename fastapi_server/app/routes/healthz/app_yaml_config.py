@@ -122,3 +122,37 @@ async def app_yaml_config_list_services():
     services = config.get("services") or {}
     return list(services.keys())
 
+
+def _get_expose_storage_allowlist() -> set:
+    """Get allowlist from YAML config."""
+    config = AppYamlConfig.get_instance()
+    return set(config.get("expose_yaml_config_storage") or [])
+
+
+@router.get("/storage/{name}")
+async def app_yaml_config_storage(name: str):
+    """Get a storage configuration."""
+    if name not in _get_expose_storage_allowlist():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Access denied to this storage configuration")
+
+    try:
+        from dataclasses import asdict
+        from ...app_yaml_config import get_storage, StorageNotFoundError
+        
+        result = get_storage(name)
+        return asdict(result)
+    except Exception as e:
+        if "StorageNotFoundError" in str(type(e)):
+             from fastapi import HTTPException
+             raise HTTPException(status_code=404, detail=f"Storage '{name}' not found")
+        raise e
+
+
+@router.get("/storages")
+async def app_yaml_config_list_storages():
+    """List all available storages."""
+    config = AppYamlConfig.get_instance()
+    storages = config.get("storage") or {}
+    return list(storages.keys())
+

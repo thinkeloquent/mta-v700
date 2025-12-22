@@ -2,7 +2,7 @@
  * AppYamlConfig healthz routes.
  */
 
-import { AppYamlConfig, getProvider, getService } from '@internal/app-yaml-config';
+import { AppYamlConfig, getProvider, getService, getStorage } from '@internal/app-yaml-config';
 
 export default async function appYamlConfigRoutes(fastify) {
   fastify.get('/healthz/admin/app-yaml-config/status', async (request, reply) => {
@@ -108,6 +108,37 @@ export default async function appYamlConfigRoutes(fastify) {
     const config = AppYamlConfig.getInstance();
     const services = config.get('services') || {};
     return Object.keys(services);
+  });
+
+  const getExposeStorageAllowlist = () => {
+    const config = AppYamlConfig.getInstance();
+    return config.get('expose_yaml_config_storage') || [];
+  };
+
+  fastify.get('/healthz/admin/app-yaml-config/storage/:name', async (request, reply) => {
+    const { name } = request.params;
+
+    if (!getExposeStorageAllowlist().includes(name)) {
+      reply.code(403);
+      return { error: 'Access denied to this storage configuration' };
+    }
+
+    try {
+      const result = getStorage(name);
+      return result;
+    } catch (e) {
+      if (e.name === 'StorageNotFoundError') {
+        reply.code(404);
+        return { error: `Storage '${name}' not found` };
+      }
+      throw e;
+    }
+  });
+
+  fastify.get('/healthz/admin/app-yaml-config/storages', async (request, reply) => {
+    const config = AppYamlConfig.getInstance();
+    const storages = config.get('storage') || {};
+    return Object.keys(storages);
   });
 }
 

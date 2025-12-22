@@ -50,3 +50,10 @@ export class ServiceNotFoundError extends Error {
         this.name = 'ServiceNotFoundError';
     }
 }
+
+export class StorageNotFoundError extends Error {
+    constructor(name: string) {
+        super(`Storage '${name}' not found in configuration`);
+        this.name = 'StorageNotFoundError';
+    }
+}
