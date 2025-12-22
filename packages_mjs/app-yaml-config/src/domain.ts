@@ -27,3 +27,16 @@ export interface ResolutionSource {
     /** Environment variable name that provided the value (if applicable) */
     envVar: string | null;
 }
+
+export interface BaseResolveOptions {
+    applyEnvOverwrites?: boolean;
+    applyFallbacks?: boolean;
+    removeMetaKeys?: boolean;
+}
+
+export interface BaseResult {
+    name: string;
+    config: Record<string, any>;
+    envOverwrites: string[];
+    resolutionSources: Record<string, ResolutionSource>;
+}

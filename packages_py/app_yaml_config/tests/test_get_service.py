@@ -98,8 +98,8 @@ def test_single_string_overwrite(config_instance):
         result = get_service("test_service")
         assert result.config["key"] == "env_value"
         assert result.env_overwrites == ["key"]
-        assert result.resolution_sources["key"]["source"] == "overwrite"
-        assert result.resolution_sources["key"]["env_var"] == "TEST_VAR"
+        assert result.resolution_sources["key"].source == "overwrite"
+        assert result.resolution_sources["key"].env_var == "TEST_VAR"
 
     # Case 2: Not found
     with patch.dict(os.environ):
@@ -126,7 +126,7 @@ def test_array_overwrite(config_instance):
     with patch.dict(os.environ, {"VAR1": "val1", "VAR2": "val2"}):
         result = get_service("test_service")
         assert result.config["key"] == "val1"
-        assert result.resolution_sources["key"]["env_var"] == "VAR1"
+        assert result.resolution_sources["key"].env_var == "VAR1"
 
     # Case 2: Second found
     with patch.dict(os.environ, {"VAR2": "val2"}):
@@ -134,7 +134,7 @@ def test_array_overwrite(config_instance):
             if "VAR1" in os.environ: del os.environ["VAR1"]
             result = get_service("test_service")
             assert result.config["key"] == "val2"
-            assert result.resolution_sources["key"]["env_var"] == "VAR2"
+            assert result.resolution_sources["key"].env_var == "VAR2"
 
 # TC-013-020: Fallback used
 def test_fallback_usage(config_instance):
@@ -160,8 +160,8 @@ def test_fallback_usage(config_instance):
             
             result = get_service("test_service")
             assert result.config["key"] == "fb_val"
-            assert result.resolution_sources["key"]["source"] == "fallback"
-            assert result.resolution_sources["key"]["env_var"] == "FB1"
+            assert result.resolution_sources["key"].source == "fallback"
+            assert result.resolution_sources["key"].env_var == "FB1"
 
 # TC-013-042: Meta keys removed
 def test_meta_keys_removed(config_instance):

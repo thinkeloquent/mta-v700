@@ -68,23 +68,23 @@ class TestStorageConfig:
             assert storage.config["port"] == "6380"
             assert "host" in storage.env_overwrites
             assert "port" in storage.env_overwrites
-            assert storage.resolution_sources["host"]["source"] == "overwrite"
-            assert storage.resolution_sources["host"]["env_var"] == "REDIS_HOST"
+            assert storage.resolution_sources["host"].source == "overwrite"
+            assert storage.resolution_sources["host"].env_var == "REDIS_HOST"
 
     def test_env_overwrite_fallback(self, mock_config):
         # Primary missing, first fallback missing, second fallback present
         with patch.dict(os.environ, {"FALLBACK_HOST_2": "fallback_val"}):
             storage = get_storage("redis_fallback")
             assert storage.config["host"] == "fallback_val"
-            assert storage.resolution_sources["host"]["source"] == "fallback"
-            assert storage.resolution_sources["host"]["env_var"] == "FALLBACK_HOST_2"
+            assert storage.resolution_sources["host"].source == "fallback"
+            assert storage.resolution_sources["host"].env_var == "FALLBACK_HOST_2"
 
     def test_env_overwrite_primary_wins(self, mock_config):
         # Using primary even if fallback exists
         with patch.dict(os.environ, {"PRIMARY_HOST": "primary_val", "FALLBACK_HOST_1": "fallback_val"}):
             storage = get_storage("redis_fallback")
             assert storage.config["host"] == "primary_val"
-            assert storage.resolution_sources["host"]["source"] == "overwrite"
+            assert storage.resolution_sources["host"].source == "overwrite"
 
     def test_non_null_preserved(self, mock_config):
         # explicit value should NOT be overwritten

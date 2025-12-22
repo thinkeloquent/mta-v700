@@ -1,147 +1,140 @@
 
-import os
 import copy
-from typing import Dict, Any, List, Optional, Tuple, Union
-from .types import ProviderOptions, ProviderResult, ResolutionSource
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass
+from ..config_resolver import ConfigResolver
+from ..domain import ResolutionSource, BaseResolveOptions, BaseResult
 from ..validators import ProviderNotFoundError
 
-class ProviderConfig:
+@dataclass
+class ProviderOptions(BaseResolveOptions):
+    """Options for retrieving provider configuration."""
+    merge_global: bool = True
+    overwrite_from_env: Optional[Dict[str, Any]] = None
+    fallbacks_from_env: Optional[Dict[str, Any]] = None
+
+@dataclass
+class ProviderResult(BaseResult):
+    """Result of a provider configuration retrieval."""
+    global_merged: bool = True
+
+class ProviderConfig(ConfigResolver[ProviderOptions, ProviderResult]):
     """Helper class to retrieve and merge provider configurations."""
 
-    def __init__(self, config: Optional['AppYamlConfig'] = None):
-        from ..core import AppYamlConfig
-        self.config = config or AppYamlConfig.get_instance()
+    @property
+    def root_key(self) -> str:
+        return 'providers'
 
-    @staticmethod
-    def _try_env_vars(env_vars: List[str]) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Try a list of environment variables and return the first one found.
-        
-        Args:
-            env_vars: List of environment variable names to check.
-            
-        Returns:
-            Tuple of (value, matched_var_name). (None, None) if none found.
-        """
-        for var_name in env_vars:
-            val = os.environ.get(var_name)
-            if val is not None:
-                return val, var_name
-        return None, None
+    @property
+    def meta_key_pattern(self) -> Dict[str, Any]:
+        return {
+            'type': 'grouped', 
+            'keys': {'overwrite': 'overwrite_from_env', 'fallbacks': 'fallbacks_from_env'}
+        }
 
-    def get(self, name: str, options: Optional[ProviderOptions] = None) -> ProviderResult:
-        """
-        Get a merged provider configuration by name.
-        
-        Args:
-            name: The name of the provider to retrieve.
-            options: Options for merging and env overwrites.
-            
-        Returns:
-            ProviderResult containing the merged config and metadata.
-            
-        Raises:
-            ProviderNotFoundError: If the provider is not defined.
-        """
-        options = options or ProviderOptions()
+    @property
+    def not_found_error(self) -> type:
+        return ProviderNotFoundError
 
-        providers = self.config.get('providers') or {}
-        provider_raw = providers.get(name)
+    def get_default_options(self, options: Optional[ProviderOptions]) -> ProviderOptions:
+        return options or ProviderOptions()
 
-        if not provider_raw:
-            raise ProviderNotFoundError(name)
-
-        result: Dict[str, Any] = {}
-        env_overwrites: List[str] = []
-        resolution_sources: Dict[str, ResolutionSource] = {}
-
-        # Step 1: Merge global as base (deep copy)
+    def pre_process(self, config: Dict[str, Any], options: ProviderOptions) -> Dict[str, Any]:
+        # Merge global config if requested
         if options.merge_global:
             global_config = self.config.get('global') or {}
-            result = copy.deepcopy(global_config)
+            # Deep copy global config to avoid mutation
+            base = copy.deepcopy(global_config)
+            # Use internal _deep_merge from core
+            return self.config._deep_merge(base, config)
+        return config
 
-        # Step 2: Deep merge provider config (provider wins)
-        # We need access to _deep_merge from the config instance
-        result = self.config._deep_merge(result, copy.deepcopy(provider_raw))
+    def _extract_env_meta(self, config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        # Override to support runtime overwrites from options
+        # Note: This is tricky because base class relies on config content.
+        # But ProviderConfig supports passing overrides in options.
+        # However, the base class signature for _extract_env_meta only checks config.
+        # We need to handle this. The cleanest way is to merge the runtime options 
+        # into the config object TEMPORARILY or just handle it in this override.
+        
+        # Let's use the base implementation first
+        meta = super()._extract_env_meta(config)
+        
+        # We don't have access to options here easily unless we change the signature 
+        # or store options. But wait, ConfigResolver is stateless per request except for config ref.
+        # The get() method calls extract_env_meta.
+        
+        # Actually, in the original implementation, runtime options took precedence.
+        # To support this in the new structure without changing base signature too much,
+        # we might need to rely on the fact that we can't easily access options here.
+        
+        # Alternative: We can modify the `config` object in `pre_process` to include 
+        # the runtime options as keys if they aren't there? No, that modifies data.
+        
+        # Let's check `get` method loop in base class. It calls `_extract_env_meta(result)`.
+        # If we want to support runtime options `overwrite_from_env`, we should probably 
+        # inject them into `result` during `pre_process` IF they are provided?
+        # But `pre_process` has access to options.
+        
+        return meta
 
-        # Step 3: Apply env overwrites and fallbacks
-        if options.apply_env_overwrites:
-            # Determine effective overwrite/fallback maps (runtime > yaml)
-            yaml_overwrite = result.get('overwrite_from_env', {})
-            yaml_fallbacks = result.get('fallbacks_from_env', {})
+    def get(self, name: str, options: Optional[ProviderOptions] = None) -> ProviderResult:
+        # We need to handle the runtime options logic which is specific to ProviderConfig.
+        # The base `get` might not be flexible enough if we strictly follow it.
+        # However, we can override `get` or `_extract_env_meta` if we store options temporarily 
+        # OR we can inject the runtime options into the config dict in `pre_process`.
+        
+        # Let's inject into config in pre_process.
+        return super().get(name, options)
+
+    def pre_process(self, config: Dict[str, Any], options: ProviderOptions) -> Dict[str, Any]:
+        # 1. Merge global
+        if options.merge_global:
+            global_config = self.config.get('global') or {}
+            base = copy.deepcopy(global_config)
+            config = self.config._deep_merge(base, config)
+
+        # 2. Inject runtime env specs if provided (override what's in YAML)
+        if options.overwrite_from_env is not None:
+            config['overwrite_from_env'] = options.overwrite_from_env
             
-            runtime_overwrite = options.overwrite_from_env
-            runtime_fallbacks = options.fallbacks_from_env
+        if options.fallbacks_from_env is not None:
+            config['fallbacks_from_env'] = options.fallbacks_from_env
             
-            # Use runtime options if provided, otherwise YAML
-            overwrite_map = runtime_overwrite if runtime_overwrite is not None else yaml_overwrite
-            fallbacks_map = runtime_fallbacks if runtime_fallbacks is not None else yaml_fallbacks
+        return config
 
-            # 3a. Process Overwrites
-            if overwrite_map and isinstance(overwrite_map, dict):
-                for key, env_spec in overwrite_map.items():
-                    # Only overwrite if current value is null/None
-                    if result.get(key) is None:
-                        # Ensure env_spec is a list
-                        env_vars = [env_spec] if isinstance(env_spec, str) else env_spec
-                        val, matched_var = self._try_env_vars(env_vars)
-                        
-                        if val is not None:
-                            result[key] = val
-                            env_overwrites.append(key)
-                            resolution_sources[key] = {"source": "overwrite", "env_var": matched_var}
-
-            # 3b. Process Fallbacks (only if value still None)
-            if fallbacks_map and isinstance(fallbacks_map, dict):
-                for key, env_spec in fallbacks_map.items():
-                    if result.get(key) is None:
-                         # Ensure env_spec is a list
-                        env_vars = [env_spec] if isinstance(env_spec, str) else env_spec
-                        val, matched_var = self._try_env_vars(env_vars)
-                        
-                        if val is not None:
-                            result[key] = val
-                            env_overwrites.append(key)
-                            resolution_sources[key] = {"source": "fallback", "env_var": matched_var}
-
-            # Cleanup metadata keys from result
-            if 'overwrite_from_env' in result:
-                del result['overwrite_from_env']
-            if 'fallbacks_from_env' in result:
-                del result['fallbacks_from_env']
-
+    def build_result(
+        self,
+        name: str,
+        config: Dict[str, Any],
+        env_overwrites: List[str],
+        resolution_sources: Dict[str, ResolutionSource],
+        options: ProviderOptions
+    ) -> ProviderResult:
         return ProviderResult(
             name=name,
-            config=result,
+            config=config,
             env_overwrites=env_overwrites,
-            global_merged=options.merge_global,
-            resolution_sources=resolution_sources
+            resolution_sources=resolution_sources,
+            global_merged=options.merge_global
         )
 
+    # Convenience methods kept for backward compatibility if needed, 
+    # but base class has list() and has() which match the public API requirement.
+    # The original had list_providers() and has_provider(). 
+    # We should alias them for backward compatibility.
+
     def list_providers(self) -> List[str]:
-        """List all available provider names."""
-        providers = self.config.get('providers') or {}
-        return list(providers.keys())
+        return self.list()
 
     def has_provider(self, name: str) -> bool:
-        """Check if a provider exists."""
-        return name in self.list_providers()
+        return self.has(name)
 
 def get_provider(
     name: str, 
     config: Optional['AppYamlConfig'] = None, 
     options: Optional[ProviderOptions] = None
 ) -> ProviderResult:
-    """
-    Convenience function to get a provider configuration.
-    
-    Args:
-        name: Name of the provider.
-        config: Optional AppYamlConfig instance.
-        options: Optional ProviderOptions.
-        
-    Returns:
-        ProviderResult.
-    """
+    """Convenience function to get a provider."""
     pc = ProviderConfig(config)
     return pc.get(name, options)

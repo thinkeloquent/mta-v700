@@ -1,26 +1,14 @@
 
-import { ResolutionSource } from '../domain.js';
+import { BaseResolveOptions, BaseResult } from '../domain';
 
-export interface ProviderOptions {
-    /** Apply global merge (default: true) */
+export interface ProviderOptions extends BaseResolveOptions {
     mergeGlobal?: boolean;
-    /** Apply env overwrites (default: true) */
-    applyEnvOverwrites?: boolean;
-    /** Runtime env overwrites */
+    /** Runtime override for env overwrites */
     overwriteFromEnv?: Record<string, string | string[]>;
-    /** Runtime env fallbacks */
-    fallbacksFromEnv?: Record<string, string[]>;
+    /** Runtime override for fallbacks */
+    fallbacksFromEnv?: Record<string, string | string[]>;
 }
 
-export interface ProviderResult {
-    /** Provider name */
-    name: string;
-    /** Merged configuration */
-    config: Record<string, any>;
-    /** Keys that were overwritten from env */
-    envOverwrites: string[];
-    /** Whether global was merged */
+export interface ProviderResult extends BaseResult {
     globalMerged: boolean;
-    /** Metadata about resolution sources */
-    resolutionSources: Record<string, ResolutionSource>;
 }

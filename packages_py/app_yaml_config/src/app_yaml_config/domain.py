@@ -13,3 +13,21 @@ class LoadResult:
 
 # Type alias for computed functions: (config: AppYamlConfig) -> Any
 ComputedDefinition = Callable[['AppYamlConfig'], Any]
+
+@dataclass
+class ResolutionSource:
+    source: str  # 'yaml' | 'overwrite' | 'fallback'
+    env_var: Optional[str] = None
+
+@dataclass
+class BaseResolveOptions:
+    apply_env_overwrites: bool = True
+    apply_fallbacks: bool = True
+    remove_meta_keys: bool = True
+
+@dataclass
+class BaseResult:
+    name: str
+    config: Dict[str, Any]
+    env_overwrites: List[str]
+    resolution_sources: Dict[str, ResolutionSource]
