@@ -80,10 +80,45 @@ async def app_yaml_config_provider(name: str):
         raise e
 
 
+
 @router.get("/providers")
 async def app_yaml_config_list_providers():
     """List all available providers."""
     config = AppYamlConfig.get_instance()
     providers = config.get("providers") or {}
     return list(providers.keys())
+
+
+def _get_expose_service_allowlist() -> set:
+    """Get allowlist from YAML config."""
+    config = AppYamlConfig.get_instance()
+    return set(config.get("expose_yaml_config_service") or [])
+
+
+@router.get("/service/{name}")
+async def app_yaml_config_service(name: str):
+    """Get a service configuration."""
+    if name not in _get_expose_service_allowlist():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Access denied to this service configuration")
+
+    try:
+        from dataclasses import asdict
+        from ...app_yaml_config import get_service, ServiceNotFoundError
+        
+        result = get_service(name)
+        return asdict(result)
+    except Exception as e:
+        if "ServiceNotFoundError" in str(type(e)):
+             from fastapi import HTTPException
+             raise HTTPException(status_code=404, detail=f"Service '{name}' not found")
+        raise e
+
+
+@router.get("/services")
+async def app_yaml_config_list_services():
+    """List all available services."""
+    config = AppYamlConfig.get_instance()
+    services = config.get("services") or {}
+    return list(services.keys())
 

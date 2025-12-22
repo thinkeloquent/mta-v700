@@ -1,8 +1,5 @@
 
-export interface ResolutionSource {
-    source: 'yaml' | 'overwrite' | 'fallback';
-    envVar: string | null;
-}
+import { ResolutionSource } from '../domain.js';
 
 export interface ProviderOptions {
     /** Apply global merge (default: true) */

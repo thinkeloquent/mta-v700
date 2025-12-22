@@ -20,3 +20,10 @@ export interface InitOptions {
     appEnv?: string;
     computedDefinitions?: ComputedRegistry;
 }
+
+export interface ResolutionSource {
+    /** Source type: yaml, overwrite, fallback */
+    source: 'yaml' | 'overwrite' | 'fallback';
+    /** Environment variable name that provided the value (if applicable) */
+    envVar: string | null;
+}

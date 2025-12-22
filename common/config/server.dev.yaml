@@ -11,6 +11,9 @@ expose_yaml_config_provider:
 expose_yaml_config_compute:
   - proxy_url
 
+expose_yaml_config_service:
+  - confluence
+
 # =============================================================================
 # Provider Configuration
 # All external API endpoints must be defined here (no hardcoded fallbacks)
@@ -305,7 +308,7 @@ global:
 # Used by db_connection_* packages via from_static_config() pattern.
 # Environment variables can override individual values.
 
-storage_providers:
+storage:
   redis:
     #Redis Host
     host: null
@@ -448,8 +451,6 @@ storage_providers:
     
     pool_recycle: 1800
     env_pool_recycle_key: POSTGRES_POOL_RECYCLE
-
-
 
 # =============================================================================
 # Services Configuration (Downstream Service Configs)

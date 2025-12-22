@@ -6,13 +6,20 @@ from .validators import (
     ConfigAlreadyInitializedError,
     ComputedKeyNotFoundError,
     CircularDependencyError,
-    ProviderNotFoundError
+    ProviderNotFoundError,
+    ServiceNotFoundError
 )
 from .get_provider import (
     ProviderOptions,
     ProviderResult,
     ProviderConfig,
     get_provider
+)
+from .get_service import (
+    ServiceOptions,
+    ServiceResult,
+    ServiceConfig,
+    get_service
 )
 
 __all__ = [
@@ -25,8 +32,13 @@ __all__ = [
     "ComputedKeyNotFoundError",
     "CircularDependencyError",
     "ProviderNotFoundError",
+    "ServiceNotFoundError",
     "ProviderOptions",
     "ProviderResult",
     "ProviderConfig",
-    "get_provider"
+    "get_provider",
+    "ServiceOptions",
+    "ServiceResult",
+    "ServiceConfig",
+    "get_service"
 ]

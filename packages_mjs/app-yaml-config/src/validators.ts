@@ -43,3 +43,10 @@ export class ProviderNotFoundError extends Error {
         this.name = 'ProviderNotFoundError';
     }
 }
+
+export class ServiceNotFoundError extends Error {
+    constructor(name: string) {
+        super(`Service '${name}' not found in configuration`);
+        this.name = 'ServiceNotFoundError';
+    }
+}

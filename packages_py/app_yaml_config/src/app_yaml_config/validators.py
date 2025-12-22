@@ -23,3 +23,7 @@ class CircularDependencyError(Exception):
 class ProviderNotFoundError(Exception):
     """Raised when a requested provider is not found in configuration."""
     pass
+
+class ServiceNotFoundError(Exception):
+    """Raised when a requested service is not found in configuration."""
+    pass

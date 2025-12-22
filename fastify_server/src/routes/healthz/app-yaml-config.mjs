@@ -2,7 +2,7 @@
  * AppYamlConfig healthz routes.
  */
 
-import { AppYamlConfig, getProvider } from '@internal/app-yaml-config';
+import { AppYamlConfig, getProvider, getService } from '@internal/app-yaml-config';
 
 export default async function appYamlConfigRoutes(fastify) {
   fastify.get('/healthz/admin/app-yaml-config/status', async (request, reply) => {
@@ -77,6 +77,37 @@ export default async function appYamlConfigRoutes(fastify) {
     const config = AppYamlConfig.getInstance();
     const providers = config.get('providers') || {};
     return Object.keys(providers);
+  });
+
+  const getExposeServiceAllowlist = () => {
+    const config = AppYamlConfig.getInstance();
+    return config.get('expose_yaml_config_service') || [];
+  };
+
+  fastify.get('/healthz/admin/app-yaml-config/service/:name', async (request, reply) => {
+    const { name } = request.params;
+
+    if (!getExposeServiceAllowlist().includes(name)) {
+      reply.code(403);
+      return { error: 'Access denied to this service configuration' };
+    }
+
+    try {
+      const result = getService(name);
+      return result;
+    } catch (e) {
+      if (e.name === 'ServiceNotFoundError') {
+        reply.code(404);
+        return { error: `Service '${name}' not found` };
+      }
+      throw e;
+    }
+  });
+
+  fastify.get('/healthz/admin/app-yaml-config/services', async (request, reply) => {
+    const config = AppYamlConfig.getInstance();
+    const services = config.get('services') || {};
+    return Object.keys(services);
   });
 }
 

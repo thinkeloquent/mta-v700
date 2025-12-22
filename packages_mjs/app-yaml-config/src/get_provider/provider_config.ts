@@ -1,7 +1,8 @@
 
 import { AppYamlConfig } from '../core.js';
+import { ResolutionSource } from '../domain.js';
 import { ProviderNotFoundError } from '../validators.js';
-import { ProviderOptions, ProviderResult, ResolutionSource } from './types.js';
+import { ProviderOptions, ProviderResult } from './types.js';
 
 export class ProviderConfig {
     private config: AppYamlConfig;
