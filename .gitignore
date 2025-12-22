@@ -3,8 +3,6 @@
 # LOCAL DEV
 # ---------------------------------------
 __STAGE__
-*.md
-*.txt
 VAULT_SECRET_FILE
 !requirements.txt
 secrets.json

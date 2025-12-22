@@ -3,7 +3,7 @@ generated_at: '2025-12-17T21:01:37.724020Z'
 generator: yaml-spec-generator v0.1.0
 package:
   name: '@internal/vault-file'
-  path: /Users/Shared/autoload/mta-v700/__STAGE__/mta-v600/packages_mjs/vault-file
+  path: ./__STAGE__/mta-v600/packages_mjs/vault-file
   version: 0.1.0
   dependencies:
     dotenv: ^16.4.0

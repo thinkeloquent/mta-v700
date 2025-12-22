@@ -3,7 +3,7 @@ generated_at: '2025-12-17T21:03:00.266231Z'
 generator: yaml-spec-generator v0.1.0
 package:
   name: vault-file
-  path: /Users/Shared/autoload/mta-v700/__STAGE__/mta-v600/packages_py/vault_file
+  path: ./__STAGE__/mta-v600/packages_py/vault_file
   version: 0.1.0
   description: A module for creating, serializing, and managing vault files
   dependencies:
