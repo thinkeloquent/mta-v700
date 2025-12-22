@@ -3,6 +3,10 @@ import glob
 from typing import Dict, Optional, List, Any, Callable, TypeVar
 from dotenv import dotenv_values
 from .domain import LoadResult
+from .logger import get_logger
+from .sensitive import mask_value
+
+logger = get_logger()
 
 T = TypeVar("T")
 ComputedDefinition = Callable[['EnvStore'], Any]
@@ -67,19 +71,36 @@ class EnvStore:
             return result
 
         for file_path in files_to_process:
+            logger.debug(f"Loading file: {file_path}")
             try:
                 # dotenv_values returns a dict of parsed values
                 env_vars = dotenv_values(file_path)
                 
+                logger.debug(f"  status: SUCCESS")
+                logger.debug(f"  vars_loaded: {len(env_vars)}")
+                logger.trace(f"  keys: {list(env_vars.keys())}")
+                
                 for key, value in env_vars.items():
                     if value is None: continue 
                     
+                    masked_val = mask_value(key, value)
+                    exists_in_process = key in os.environ
+                    
+                    # Log injection
+                    if exists_in_process and not override:
+                        logger.debug(f"ENV SKIP: {key} (already set, override=false)")
+                    elif exists_in_process:
+                        existing_val = os.environ[key]
+                        logger.debug(f"ENV OVERWRITE: {key} = {masked_val} (was: {mask_value(key, existing_val)})")
+                    else:
+                        logger.debug(f"ENV SET: {key} = {masked_val}")
+
                     # Update internal store
                     if override or key not in self._store:
                         self._store[key] = value
                     
                     # Update system env if override or not present
-                    if override or key not in os.environ:
+                    if override or not exists_in_process:
                         os.environ[key] = value
                         
                 result.files_loaded.append(file_path)
@@ -87,6 +108,8 @@ class EnvStore:
                 self._loaded_files.append(file_path)
                 
             except Exception as e:
+                logger.error(f"  status: FAILED")
+                logger.error(f"  error: {str(e)}")
                 result.errors.append({"file": file_path, "error": str(e)})
 
         # Clear cache on new load
@@ -104,22 +127,48 @@ class EnvStore:
         Each parser returns data that gets flattened and merged into the store.
         """
         for prefix, parser in self._base64_file_parsers.items():
+            logger.debug(f"Executing base64 parser: {prefix}")
             try:
+                # Check for missing source var
+                source_value = self.get(prefix)
+                if not source_value:
+                    logger.warn(f"  source_var: {prefix}")
+                    logger.warn(f"  source_value: [UNDEFINED]")
+                    logger.warn(f"  status: SKIPPED (source not set)")
+                else:
+                    logger.debug(f"  source_var: {prefix}")
+                    logger.debug(f"  source_value: [PRESENT, {len(source_value)} bytes]")
+
                 parsed = parser(self)
 
                 if parsed is None:
                     continue
+                
+                logger.debug(f"  format_detected: unknown (parser handled decoding)")
+
+                keys_injected = 0
 
                 # If parsed result is a dict, flatten it with prefix
                 if isinstance(parsed, dict):
                     flattened = self._flatten_object(parsed, prefix)
 
                     for key, value in flattened.items():
-                        if override or key not in self._store:
-                            self._store[key] = value
-
-                        if override or key not in os.environ:
+                        masked_val = mask_value(key, value)
+                        exists_in_process = key in os.environ
+                        
+                        if exists_in_process and not override:
+                            logger.debug(f"ENV SKIP: {key} (already set, override=false)")
+                        elif exists_in_process:
+                            existing_val = os.environ[key]
+                            logger.debug(f"ENV OVERWRITE: {key} = {masked_val} (was: {mask_value(key, existing_val)})")
                             os.environ[key] = value
+                            self._store[key] = value
+                            keys_injected += 1
+                        else:
+                            logger.debug(f"ENV SET: {key} = {masked_val}")
+                            os.environ[key] = value
+                            self._store[key] = value
+                            keys_injected += 1
 
                     result.files_loaded.append(f"base64:{prefix}")
                     result.total_vars_loaded += len(flattened)
@@ -127,17 +176,24 @@ class EnvStore:
                     # For non-dict values, store directly with prefix as key
                     key = prefix
                     value = str(parsed)
+                    masked_val = mask_value(key, value)
+                    exists_in_process = key in os.environ
 
-                    if override or key not in self._store:
-                        self._store[key] = value
-
-                    if override or key not in os.environ:
-                        os.environ[key] = value
+                    if override or not exists_in_process:
+                         logger.debug(f"ENV SET/OVERWRITE: {key} = {masked_val}")
+                         self._store[key] = value
+                         os.environ[key] = value
+                         keys_injected += 1
 
                     result.files_loaded.append(f"base64:{prefix}")
                     result.total_vars_loaded += 1
+                
+                logger.debug(f"  status: SUCCESS")
+                logger.debug(f"  keys_injected: {keys_injected}")
 
             except Exception as e:
+                logger.error(f"  status: FAILED")
+                logger.error(f"  error: {str(e)}")
                 result.errors.append({"file": f"base64:{prefix}", "error": str(e)})
 
     def _flatten_object(
@@ -243,8 +299,23 @@ class EnvStore:
             computed_definitions: Registry of computed value definitions
             base64_file_parsers: Registry of base64 file parsers
         """
+        logger.info('EnvStore.on_startup() called')
+        logger.debug(f"  location: {location}")
+        logger.debug(f"  pattern: {pattern}")
+        logger.debug(f"  override: {override}")
+        logger.debug(f"  computed_definitions: {list(computed_definitions.keys()) if computed_definitions else []}")
+        logger.debug(f"  base64_file_parsers: {list(base64_file_parsers.keys()) if base64_file_parsers else []}")
+
         instance = cls()
-        instance.load(location, pattern, override, computed_definitions, base64_file_parsers)
+        result = instance.load(location, pattern, override, computed_definitions, base64_file_parsers)
+
+        logger.info('=== EnvStore Initialization Complete ===')
+        logger.info(f"  files_processed: {len(result.files_loaded) + len(result.errors)}")
+        logger.info(f"  files_succeeded: {len(result.files_loaded)}")
+        logger.info(f"  files_failed: {len(result.errors)}")
+        if result.errors:
+            logger.warn(f"  errors: {result.errors}")
+
         return instance
 
 # Global Accessor

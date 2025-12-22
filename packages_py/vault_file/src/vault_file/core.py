@@ -11,6 +11,9 @@ from dotenv import dotenv_values
 
 from .domain import VaultHeader, VaultMetadata, VaultPayload
 from .validators import validate_vault_data, VaultValidationError, VaultSerializationError
+from .logger import get_logger
+
+logger = get_logger()
 
 class VaultFile:
     def __init__(
@@ -85,6 +88,7 @@ class VaultFile:
         Parse a VaultFile from a base64-encoded data URI.
         Format: data:application/json;base64,<BASE64 Encoded String>
         """
+        logger.debug('Parsing VaultFile from base64 data URI')
         if not data_uri.startswith(cls.BASE64_PREFIX):
             raise VaultSerializationError(
                 f"Invalid base64 data URI format. Expected prefix: {cls.BASE64_PREFIX}"
@@ -136,6 +140,7 @@ class VaultFile:
             content = base64.b64decode(base64_data).decode('utf-8')
             return content, mime_type
         except Exception as e:
+            logger.error(f"Failed to decode base64: {e}")
             raise VaultSerializationError(f"Failed to decode base64: {e}")
 
     @classmethod
@@ -150,6 +155,7 @@ class VaultFile:
             Tuple of (parsed content, format name)
         """
         content, mime_type = cls.decode_base64(data_uri)
+        logger.debug(f"Auto-detecting format for MIME: {mime_type}")
 
         if mime_type == cls.MIME_JSON:
             try:

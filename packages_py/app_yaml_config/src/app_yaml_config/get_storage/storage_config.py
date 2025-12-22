@@ -22,8 +22,8 @@ class StorageConfig(ConfigResolver[StorageOptions, StorageResult]):
     @property
     def meta_key_pattern(self) -> Dict[str, Any]:
         return {
-            'type': 'per-property', 
-            'regex': re.compile(r'^env_(.+)_key(_fallbacks)?$')
+            'type': 'grouped',
+            'keys': {'overwrite': 'overwrite_from_env', 'fallbacks': 'fallbacks_from_env'}
         }
 
     @property
@@ -60,11 +60,6 @@ class StorageConfig(ConfigResolver[StorageOptions, StorageResult]):
 
     def has_storage(self, name: str) -> bool:
         return self.has(name)
-
-    def _extract_base_property(self, meta_key: str) -> Optional[str]:
-        """Extract base property from meta key like env_host_key -> host"""
-        match = self.meta_key_pattern['regex'].match(meta_key)
-        return match.group(1) if match else None
 
 def get_storage(
     name: str, 

@@ -313,147 +313,110 @@ global:
 
 storage:
   redis:
-    #Redis Host
     host: null
-    env_host_key: REDIS_HOST
-    env_host_key_fallbacks:
-      - REDIS_HOSTNAME
-
-    #Port
     port: null
-    env_port_key: REDIS_PORT
-    env_port_key_fallbacks:
-      - REDIS_PORT_NUMBER
-
-    #Username
     username: null
-    env_username_key: REDIS_USER
-    env_username_key_fallbacks:
-      - REDIS_USERNAME
-
-    #Password
     password: null
-    env_password_key: REDIS_PASSWORD
-    env_password_key_fallbacks:
-      - REDIS_PASS
-      - REDIS_PWD
-
     db: null
-    env_db_key: REDIS_DB
-    env_db_key_fallbacks:
-      - REDIS_DB_NUMBER
-
-    # Connection
     unix_socket_path: null
-    env_unix_socket_path_key: REDIS_UNIX_SOCKET_PATH
-
-    # Pooling & Liveness
     max_connections: null
-    env_max_connections_key: REDIS_MAX_CONNECTIONS
-    env_max_connections_key_fallbacks:
-      - REDIS_MAX_CONNECTIONS_NUMBER
-
     min_connections: null
-    env_min_connections_key: REDIS_MIN_CONNECTIONS
-    env_min_connections_key_fallbacks:
-      - REDIS_MIN_CONNECTIONS_NUMBER
-
     health_check_interval: null
-    env_health_check_interval_key: REDIS_HEALTH_CHECK_INTERVAL
-
-    # Timeouts & Retries
     socket_timeout: null
-    env_socket_timeout_key: REDIS_SOCKET_TIMEOUT
-    env_socket_timeout_key_fallbacks:
-      - REDIS_SOCKET_TIMEOUT_NUMBER
-
     socket_connect_timeout: null
-    env_socket_connect_timeout_key: REDIS_SOCKET_CONNECT_TIMEOUT
-
     retry_on_timeout: null
-    env_retry_on_timeout_key: REDIS_RETRY_ON_TIMEOUT
-
-    # SSL/TLS
     use_tls: false
-    env_use_tls_key: REDIS_TLS
-    env_use_tls_key_fallbacks:
-      - REDIS_USE_TLS
-      - REDIS_TLS_ENABLED
-
     ssl_cert_reqs: none #"none"
-    env_ssl_cert_reqs_key: REDIS_SSL_CERT_REQS
-    env_ssl_cert_reqs_key_fallbacks:
-      - REDIS_SSL
-      - REDIS_SSL_REQUIRED
-
     ssl_ca_certs: null
-    env_ssl_ca_certs_key: REDIS_SSL_CA_CERTS
-
     ssl_check_hostname: null
-    env_ssl_check_hostname_key: REDIS_SSL_CHECK_HOSTNAME
-
-    # Encoding
     encoding: null
-    env_encoding_key: REDIS_ENCODING
-    
     decode_responses: null
-    env_decode_responses_key: REDIS_DECODE_RESPONSES
+
+    overwrite_from_env:
+      username:
+        - REDIS_USER
+        - REDIS_USERNAME
+      port:
+        - REDIS_PORT
+        - REDIS_PORT_NUMBER
+      password: 
+        - REDIS_PASSWORD
+        - REDIS_PASS
+        - REDIS_PWD
+      db:
+        - REDIS_DB
+        - REDIS_DB_NUMBER
+      unix_socket_path:
+        - REDIS_UNIX_SOCKET_PATH
+      max_connections:
+        - REDIS_MAX_CONNECTIONS
+        - REDIS_MAX_CONNECTIONS_NUMBER
+      min_connections:
+        - REDIS_MIN_CONNECTIONS
+        - REDIS_MIN_CONNECTIONS_NUMBER
+      health_check_interval: REDIS_HEALTH_CHECK_INTERVAL
+      decode_responses: REDIS_DECODE_RESPONSES
+      encoding: REDIS_ENCODING
+      ssl_check_hostname: REDIS_SSL_CHECK_HOSTNAME
+      ssl_ca_certs: REDIS_SSL_CA_CERTS
+      retry_on_timeout: REDIS_RETRY_ON_TIMEOUT
+      socket_connect_timeout: REDIS_SOCKET_CONNECT_TIMEOUT
+      socket_timeout:
+        - REDIS_SOCKET_TIMEOUT_NUMBER
+        - REDIS_SOCKET_TIMEOUT
+      ssl_cert_reqs:
+        - REDIS_SSL_CERT_REQS
+        - REDIS_SSL_REQUIRED
+        - REDIS_SSL
+      use_tls:
+        - REDIS_USE_TLS
+        - REDIS_TLS
+        - REDIS_TLS_ENABLED
+      host:
+        - REDIS_HOST
 
   postgres:
-    # Postgres Host
-    host: null
-    env_host_key: POSTGRES_HOST
-    env_host_key_fallbacks:
-      - POSTGRES_HOSTNAME
-      
-    # Port
+    host: null      
     port: null
-    env_port_key: POSTGRES_PORT
-    env_port_key_fallbacks:
-      - POSTGRES_PORT_NUMBER
-
-    # Username
     username: null
-    env_username_key: POSTGRES_USER
-    env_username_key_fallbacks:
-      - POSTGRES_USERNAME
-
-    # Password
     password: null
-    env_password_key: POSTGRES_PASSWORD
-    env_password_key_fallbacks:
-      - POSTGRES_PASS
-
-    # Database
     database: null
-    env_database_key: POSTGRES_DB
-    env_database_key_fallbacks:
-      - POSTGRES_DB_NAME
-      
-    # Schema
     schema: null #public
-    env_schema_key: POSTGRES_SCHEMA
-    env_schema_key_fallbacks:
-      - POSTGRES_SCHEMA_NAME
-
-    # SSL Mode
     sslmode: null #disable
-    env_sslmode_key: POSTGRES_SSLMODE
-    env_sslmode_key_fallbacks:
-      - POSTGRES_SSLMODE_ENABLED
-      
-    # Connection Pool settings
-    pool_size: 5
-    env_pool_size_key: POSTGRES_POOL_SIZE
-    
-    max_overflow: 10
-    env_max_overflow_key: POSTGRES_MAX_OVERFLOW
-    
-    pool_timeout: 30
-    env_pool_timeout_key: POSTGRES_POOL_TIMEOUT
-    
+    pool_size: 5    
+    max_overflow: 10    
+    pool_timeout: 30    
     pool_recycle: 1800
-    env_pool_recycle_key: POSTGRES_POOL_RECYCLE
+    
+    overwrite_from_env:
+      pool_recycle: POSTGRES_POOL_RECYCLE
+      pool_timeout: POSTGRES_POOL_TIMEOUT
+      max_overflow: POSTGRES_MAX_OVERFLOW
+      pool_size: POSTGRES_POOL_SIZE
+      sslmode:
+        - POSTGRES_SSLMODE
+        - POSTGRES_SSLMODE_ENABLED
+      schema:
+        - POSTGRES_SCHEMA
+        - POSTGRES_SCHEMA_NAME
+      database:
+        - POSTGRES_DB_NAME
+        - POSTGRES_DB
+      password: null
+        - POSTGRES_PASS
+        - POSTGRES_PASSWORD
+      username:
+        - POSTGRES_USERNAME
+        - POSTGRES_USER
+      port:
+        - POSTGRES_PORT_NUMBER
+        - POSTGRES_PORT
+      host:
+        - POSTGRES_HOSTNAME
+        - POSTGRES_HOST
+
+
+
 
 # =============================================================================
 # Services Configuration (Downstream Service Configs)

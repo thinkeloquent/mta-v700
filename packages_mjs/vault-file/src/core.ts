@@ -5,6 +5,9 @@ import { VaultHeader, VaultMetadata, VaultPayload } from './domain.js';
 import {
     VaultFileSchema, VaultValidationError, VaultSerializationError
 } from './validators.js';
+import { getLogger } from './logger.js';
+
+const logger = getLogger();
 
 export class VaultFile {
     public header: VaultHeader;
@@ -101,6 +104,7 @@ export class VaultFile {
      * Format: data:application/json;base64,<BASE64 Encoded String>
      */
     public static fromBase64File(dataUri: string): VaultFile {
+        logger.debug('Parsing VaultFile from base64 data URI');
         if (!dataUri.startsWith(VaultFile.BASE64_PREFIX)) {
             throw new VaultSerializationError(
                 `Invalid base64 data URI format. Expected prefix: ${VaultFile.BASE64_PREFIX}`
@@ -141,6 +145,7 @@ export class VaultFile {
         const match = dataUri.match(dataUriRegex);
 
         if (!match) {
+            logger.error('Invalid base64 data URI format');
             throw new VaultSerializationError(
                 `Invalid base64 data URI format. Expected: data:<mime>;base64,<content>`
             );
@@ -164,6 +169,7 @@ export class VaultFile {
      */
     public static fromBase64Auto(dataUri: string): { content: any; format: string } {
         const { content, mimeType } = VaultFile.decodeBase64(dataUri);
+        logger.debug(`Auto-detecting format for MIME: ${mimeType}`);
 
         switch (mimeType) {
             case VaultFile.MIME_JSON:

@@ -13,8 +13,8 @@ export class StorageConfig extends ConfigResolver<StorageOptions, StorageResult>
 
     protected get metaKeyPattern(): MetaKeyPattern {
         return {
-            type: 'per-property',
-            regex: /^env_(.+)_key(_fallbacks)?$/
+            type: 'grouped',
+            keys: { overwrite: 'overwrite_from_env', fallbacks: 'fallbacks_from_env' }
         };
     }
 
@@ -54,19 +54,6 @@ export class StorageConfig extends ConfigResolver<StorageOptions, StorageResult>
 
     public hasStorage(name: string): boolean {
         return this.has(name);
-    }
-
-    /**
-     * Helper exposed via public method if needed by tests, 
-     * but preferably tests use public API.
-     * Original implementation had `extractBaseProperty`.
-     * If tests rely on it, we might need it.
-     */
-    public _extractBaseProperty(metaKey: string): string | null {
-        const match = this.metaKeyPattern.type === 'per-property'
-            ? (this.metaKeyPattern as any).regex.exec(metaKey)
-            : null;
-        return match ? match[1] : null;
     }
 }
 
