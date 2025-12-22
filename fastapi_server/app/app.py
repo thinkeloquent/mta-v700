@@ -11,7 +11,9 @@ from .routes.healthz import (
     app_yaml_config,
     db_connection_elasticsearch,
     db_connection_postgres,
+    db_connection_postgres,
     db_connection_redis,
+    fetch_proxy_dispatcher,
 )
 
 
@@ -49,3 +51,4 @@ app.include_router(app_yaml_config.router)
 app.include_router(db_connection_elasticsearch.router)
 app.include_router(db_connection_postgres.router)
 app.include_router(db_connection_redis.router)
+app.include_router(fetch_proxy_dispatcher.router)

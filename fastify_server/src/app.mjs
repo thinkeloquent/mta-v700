@@ -12,6 +12,7 @@ import appYamlConfigRoutes from "./routes/healthz/app-yaml-config.mjs";
 import elasticsearchRoutes from "./routes/healthz/db-connection-elasticsearch.mjs";
 import postgresRoutes from "./routes/healthz/db-connection-postgres.mjs";
 import redisRoutes from "./routes/healthz/db-connection-redis.mjs";
+import fetchProxyDispatcherRoutes from "./routes/healthz/fetch-proxy-dispatcher.mjs";
 
 const fastify = Fastify({
   logger: true,
@@ -33,6 +34,7 @@ fastify.register(appYamlConfigRoutes);
 fastify.register(elasticsearchRoutes);
 fastify.register(postgresRoutes);
 fastify.register(redisRoutes);
+fastify.register(fetchProxyDispatcherRoutes);
 
 // Start server
 const start = async () => {
