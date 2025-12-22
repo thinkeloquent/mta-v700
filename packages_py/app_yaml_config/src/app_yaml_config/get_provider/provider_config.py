@@ -1,8 +1,8 @@
 
 import os
 import copy
-from typing import Dict, Any, List, Optional
-from .types import ProviderOptions, ProviderResult
+from typing import Dict, Any, List, Optional, Tuple, Union
+from .types import ProviderOptions, ProviderResult, ResolutionSource
 from ..validators import ProviderNotFoundError
 
 class ProviderConfig:
@@ -11,6 +11,23 @@ class ProviderConfig:
     def __init__(self, config: Optional['AppYamlConfig'] = None):
         from ..core import AppYamlConfig
         self.config = config or AppYamlConfig.get_instance()
+
+    @staticmethod
+    def _try_env_vars(env_vars: List[str]) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Try a list of environment variables and return the first one found.
+        
+        Args:
+            env_vars: List of environment variable names to check.
+            
+        Returns:
+            Tuple of (value, matched_var_name). (None, None) if none found.
+        """
+        for var_name in env_vars:
+            val = os.environ.get(var_name)
+            if val is not None:
+                return val, var_name
+        return None, None
 
     def get(self, name: str, options: Optional[ProviderOptions] = None) -> ProviderResult:
         """
@@ -36,6 +53,7 @@ class ProviderConfig:
 
         result: Dict[str, Any] = {}
         env_overwrites: List[str] = []
+        resolution_sources: Dict[str, ResolutionSource] = {}
 
         # Step 1: Merge global as base (deep copy)
         if options.merge_global:
@@ -43,34 +61,61 @@ class ProviderConfig:
             result = copy.deepcopy(global_config)
 
         # Step 2: Deep merge provider config (provider wins)
-        # We need access to _deep_merge from the config instance or implement it here.
-        # Accessing protected method _deep_merge from AppYamlConfig is acceptable within the package.
+        # We need access to _deep_merge from the config instance
         result = self.config._deep_merge(result, copy.deepcopy(provider_raw))
 
-        # Step 3: Apply env overwrites
-        if options.apply_env_overwrites and 'overwrite_from_env' in result:
-            overwrites = result.get('overwrite_from_env', {})
+        # Step 3: Apply env overwrites and fallbacks
+        if options.apply_env_overwrites:
+            # Determine effective overwrite/fallback maps (runtime > yaml)
+            yaml_overwrite = result.get('overwrite_from_env', {})
+            yaml_fallbacks = result.get('fallbacks_from_env', {})
             
-            # overwrite_from_env might be None if defined as key but empty in yaml?
-            # Safely handle if it's a dict
-            if isinstance(overwrites, dict):
-                for key, env_var_name in overwrites.items():
-                    # Only overwrite if current value is null/None via explicit config or merge
-                    if result.get(key) is None:
-                        env_value = os.environ.get(env_var_name)
-                        if env_value is not None:
-                            result[key] = env_value
-                            env_overwrites.append(key)
+            runtime_overwrite = options.overwrite_from_env
+            runtime_fallbacks = options.fallbacks_from_env
+            
+            # Use runtime options if provided, otherwise YAML
+            overwrite_map = runtime_overwrite if runtime_overwrite is not None else yaml_overwrite
+            fallbacks_map = runtime_fallbacks if runtime_fallbacks is not None else yaml_fallbacks
 
-            # Remove overwrite_from_env from result (internal meta)
+            # 3a. Process Overwrites
+            if overwrite_map and isinstance(overwrite_map, dict):
+                for key, env_spec in overwrite_map.items():
+                    # Only overwrite if current value is null/None
+                    if result.get(key) is None:
+                        # Ensure env_spec is a list
+                        env_vars = [env_spec] if isinstance(env_spec, str) else env_spec
+                        val, matched_var = self._try_env_vars(env_vars)
+                        
+                        if val is not None:
+                            result[key] = val
+                            env_overwrites.append(key)
+                            resolution_sources[key] = {"source": "overwrite", "env_var": matched_var}
+
+            # 3b. Process Fallbacks (only if value still None)
+            if fallbacks_map and isinstance(fallbacks_map, dict):
+                for key, env_spec in fallbacks_map.items():
+                    if result.get(key) is None:
+                         # Ensure env_spec is a list
+                        env_vars = [env_spec] if isinstance(env_spec, str) else env_spec
+                        val, matched_var = self._try_env_vars(env_vars)
+                        
+                        if val is not None:
+                            result[key] = val
+                            env_overwrites.append(key)
+                            resolution_sources[key] = {"source": "fallback", "env_var": matched_var}
+
+            # Cleanup metadata keys from result
             if 'overwrite_from_env' in result:
                 del result['overwrite_from_env']
+            if 'fallbacks_from_env' in result:
+                del result['fallbacks_from_env']
 
         return ProviderResult(
             name=name,
             config=result,
             env_overwrites=env_overwrites,
-            global_merged=options.merge_global
+            global_merged=options.merge_global,
+            resolution_sources=resolution_sources
         )
 
     def list_providers(self) -> List[str]:

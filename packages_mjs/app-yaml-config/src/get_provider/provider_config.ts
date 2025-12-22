@@ -1,13 +1,26 @@
 
 import { AppYamlConfig } from '../core.js';
 import { ProviderNotFoundError } from '../validators.js';
-import { ProviderOptions, ProviderResult } from './types.js';
+import { ProviderOptions, ProviderResult, ResolutionSource } from './types.js';
 
 export class ProviderConfig {
     private config: AppYamlConfig;
 
     constructor(config?: AppYamlConfig) {
         this.config = config ?? AppYamlConfig.getInstance();
+    }
+
+    /**
+     * Try a list of environment variables and return the first one found.
+     */
+    private _tryEnvVars(envVars: string[]): { value: string | undefined, matchedVar: string | undefined } {
+        for (const varName of envVars) {
+            const val = process.env[varName];
+            if (val !== undefined) {
+                return { value: val, matchedVar: varName };
+            }
+        }
+        return { value: undefined, matchedVar: undefined };
     }
 
     /**
@@ -26,6 +39,7 @@ export class ProviderConfig {
 
         let result: Record<string, any> = {};
         const envOverwrites: string[] = [];
+        const resolutionSources: Record<string, ResolutionSource> = {};
 
         // Step 1: Merge global as base (deep copy)
         if (mergeGlobal) {
@@ -34,43 +48,66 @@ export class ProviderConfig {
         }
 
         // Step 2: Deep merge provider config (provider wins)
-        // Accessing protected static or using helper if possible.
-        // Assuming we need to implement deepCopy/deepMerge or assume they are available.
-        // Since types/validation is loose here for now, implementing simple helpers or using AppYamlConfig's if static public.
-        // Checking core.ts... deepMerge is not static public usually.
-        // I made a note in plan to "Reuse from core". Let's check if exportable.
-        // If not easily exportable, I will re-implement simple versions here to avoid breaking core encapsulation
-        // or assume I can use a util.
-
-        // Actually, AppYamlConfig has deepMerge logic internally.
-        // Let's implement local helpers for safety and independence.
         result = this.deepMerge(result, this.deepCopy(providerRaw));
 
-        // Step 3: Apply env overwrites
-        if (applyEnvOverwrites && result.overwrite_from_env) {
-            const overwrites = result.overwrite_from_env as Record<string, string>;
+        // Step 3: Apply env overwrites and fallbacks
+        if (applyEnvOverwrites) {
+            const yamlOverwrite = (result.overwrite_from_env || {}) as Record<string, string | string[]>;
+            const yamlFallbacks = (result.fallbacks_from_env || {}) as Record<string, string[]>;
 
-            for (const [key, envVarName] of Object.entries(overwrites)) {
-                // Only overwrite if current value is null
-                if (result[key] === null) {
-                    const envValue = process.env[envVarName];
-                    if (envValue !== undefined) {
-                        result[key] = envValue;
-                        envOverwrites.push(key);
+            // Runtime options override YAML options
+            const overwriteMap = options.overwriteFromEnv !== undefined ? options.overwriteFromEnv : yamlOverwrite;
+            const fallbacksMap = options.fallbacksFromEnv !== undefined ? options.fallbacksFromEnv : yamlFallbacks;
+
+            // 3a. Process Overwrites
+            if (overwriteMap) {
+                for (const [key, envSpec] of Object.entries(overwriteMap)) {
+                    // Only overwrite if current value is null
+                    if (result[key] === null) {
+                        const envVars = Array.isArray(envSpec) ? envSpec : [envSpec];
+                        const { value, matchedVar } = this._tryEnvVars(envVars as string[]); // Cast as safely string[]
+
+                        if (value !== undefined) {
+                            result[key] = value;
+                            if (matchedVar) {
+                                envOverwrites.push(key);
+                                resolutionSources[key] = { source: 'overwrite', envVar: matchedVar };
+                            }
+                        }
                     }
-                    // If env not defined, leave as null
                 }
             }
 
-            // Remove overwrite_from_env from result (internal meta)
+            // 3b. Process Fallbacks
+            if (fallbacksMap) {
+                for (const [key, envSpec] of Object.entries(fallbacksMap)) {
+                    // Only fallback if value is still null
+                    if (result[key] === null) {
+                        const envVars = Array.isArray(envSpec) ? envSpec : [envSpec];
+                        const { value, matchedVar } = this._tryEnvVars(envVars as string[]);
+
+                        if (value !== undefined) {
+                            result[key] = value;
+                            if (matchedVar) {
+                                envOverwrites.push(key);
+                                resolutionSources[key] = { source: 'fallback', envVar: matchedVar };
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Cleanup metadata
             delete result.overwrite_from_env;
+            delete result.fallbacks_from_env;
         }
 
         return {
             name,
             config: result,
             envOverwrites,
-            globalMerged: mergeGlobal
+            globalMerged: mergeGlobal,
+            resolutionSources
         };
     }
 

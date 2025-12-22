@@ -17,7 +17,9 @@ providers:
     api_auth_type: "bearer"         # bearer, basic, x-api-key, custom
     token_resolver: "static"        # static (default), startup, request
     overwrite_from_env:
-      api_key: "GEMINI_API_KEY"
+      api_key: "GEMINI_API_KEY2"
+    fallbacks_from_env:
+      api_key: ["GEMINI_API_KEY3", "GEMINI_API_KEY"]
     proxy_url: false  # Disabled - no proxy running
     client:
       # Override timeout for this provider only
