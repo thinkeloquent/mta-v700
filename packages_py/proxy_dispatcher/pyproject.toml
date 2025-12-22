@@ -1,0 +1,24 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "proxy_dispatcher"
+version = "1.0.0"
+description = "HTTP client factory with proxy configuration for Python applications"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "proxy_dispatcher", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+httpx = ">=0.24.0"
+proxy_config = {path = "../proxy_config", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = ">=0.21.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"

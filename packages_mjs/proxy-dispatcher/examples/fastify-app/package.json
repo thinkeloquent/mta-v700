@@ -1,0 +1,23 @@
+{
+    "name": "fastify-app",
+    "version": "1.0.0",
+    "description": "Fastify example using proxy-dispatcher",
+    "main": "dist/server.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "dev": "ts-node src/server.ts"
+    },
+    "dependencies": {
+        "fastify": "^4.0.0",
+        "undici": "^6.0.0",
+        "@internal/proxy-dispatcher": "file:../../..",
+        "@internal/proxy-config": "file:../../../../proxy-config"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "ts-node": "^10.0.0",
+        "@types/node": "^20.0.0"
+    }
+}

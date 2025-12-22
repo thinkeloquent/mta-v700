@@ -1,0 +1,21 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "proxy_config"
+version = "1.0.0"
+description = "Network configuration and proxy resolution for Python applications"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "proxy_config", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pydantic = ">=2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

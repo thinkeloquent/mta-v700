@@ -1,0 +1,16 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "fastapi-app"
+version = "1.0.0"
+description = "FastAPI example using proxy_dispatcher"
+authors = ["Admin <admin@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.100.0"
+uvicorn = "^0.20.0"
+proxy_dispatcher = {path = "../../../proxy_dispatcher", develop = true}
+proxy_config = {path = "../../../proxy_config", develop = true}
