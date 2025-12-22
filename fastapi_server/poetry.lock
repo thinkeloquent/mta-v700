@@ -224,7 +224,7 @@ files = []
 develop = true
 
 [package.dependencies]
-deepmerge = "^1.1.0"
+deepmerge = "^2.0"
 python-dotenv = "^1.0.0"
 pyyaml = "^6.0"
 
@@ -503,6 +503,7 @@ develop = true
 [package.dependencies]
 aiohttp = ">=3.8.0"
 elasticsearch = "^8.0.0"
+env-resolve = {path = "../env_resolve"}
 opensearch-py = ">=2.4.0"
 pydantic = ">=2.0.0"
 
@@ -522,8 +523,11 @@ develop = true
 
 [package.dependencies]
 asyncpg = ">=0.27.0"
+deepmerge = "^2.0"
+env-resolve = {path = "../env_resolve"}
 psycopg2-binary = ">=2.9.0"
 pydantic = ">=2.0.0"
+pyyaml = "^6.0.3"
 sqlalchemy = ">=2.0.0"
 
 [package.source]
@@ -541,6 +545,7 @@ files = []
 develop = true
 
 [package.dependencies]
+env-resolve = {path = "../env_resolve"}
 pydantic = ">=2.0.0"
 redis = ">=4.5.0"
 
@@ -550,15 +555,18 @@ url = "../packages_py/db_connection_redis"
 
 [[package]]
 name = "deepmerge"
-version = "1.1.1"
-description = "a toolset to deeply merge python dictionaries."
+version = "2.0"
+description = "A toolset for deeply merging Python dictionaries."
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "deepmerge-1.1.1-py3-none-any.whl", hash = "sha256:7219dad9763f15be9dcd4bcb53e00f48e4eed6f5ed8f15824223eb934bb35977"},
-    {file = "deepmerge-1.1.1.tar.gz", hash = "sha256:53a489dc9449636e480a784359ae2aab3191748c920649551c8e378622f0eca4"},
+    {file = "deepmerge-2.0-py3-none-any.whl", hash = "sha256:6de9ce507115cff0bed95ff0ce9ecc31088ef50cbdf09bc90a09349a318b3d00"},
+    {file = "deepmerge-2.0.tar.gz", hash = "sha256:5c3d86081fbebd04dd5de03626a0607b809a98fb6ccba5770b62466fe940ff20"},
 ]
+
+[package.extras]
+dev = ["black", "build", "mypy", "pytest", "pyupgrade", "twine", "validate-pyproject[all]"]
 
 [[package]]
 name = "elastic-transport"
@@ -604,6 +612,20 @@ orjson = ["orjson (>=3)"]
 pyarrow = ["pyarrow (>=1)"]
 requests = ["requests (>=2.4.0,!=2.32.2,<3.0.0)"]
 vectorstore-mmr = ["numpy (>=1)", "simsimd (>=3)"]
+
+[[package]]
+name = "env-resolve"
+version = "0.1.0"
+description = "Standardized environment variable resolution for Python packages"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "../packages_py/env_resolve"
 
 [[package]]
 name = "events"
@@ -2490,4 +2512,4 @@ dev = ["httpx", "pytest"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "9fb9390130423344faf2a5168dd7a04edac11eabada21a6520f6e5755fc88fe9"
+content-hash = "ec6459796db2dbab1f5f13788809f30c4c73198142e4db2b6b3203320e1b30a9"

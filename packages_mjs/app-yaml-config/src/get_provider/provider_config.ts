@@ -47,9 +47,11 @@ export class ProviderConfig extends ConfigResolver<ProviderOptions, ProviderResu
 
         // 2. Inject runtime overwrites (Provider specific feature)
         if (options.overwriteFromEnv) {
+            console.debug(`[ProviderConfig] Injecting runtime overwriteFromEnv for provider:`, options.overwriteFromEnv);
             config['overwrite_from_env'] = options.overwriteFromEnv;
         }
         if (options.fallbacksFromEnv) {
+            console.debug(`[ProviderConfig] Injecting runtime fallbacksFromEnv for provider:`, options.fallbacksFromEnv);
             config['fallbacks_from_env'] = options.fallbacksFromEnv;
         }
 
@@ -63,6 +65,7 @@ export class ProviderConfig extends ConfigResolver<ProviderOptions, ProviderResu
         resolutionSources: Record<string, ResolutionSource>,
         options: ProviderOptions
     ): ProviderResult {
+        console.debug(`[ProviderConfig] Resolved provider config for ${name}. Env overwrites:`, envOverwrites);
         return {
             name,
             config,

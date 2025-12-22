@@ -1,10 +1,13 @@
 
 import copy
+import logging
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from ..config_resolver import ConfigResolver
 from ..domain import ResolutionSource, BaseResolveOptions, BaseResult
 from ..validators import ProviderNotFoundError
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ProviderOptions(BaseResolveOptions):
@@ -85,7 +88,10 @@ class ProviderConfig(ConfigResolver[ProviderOptions, ProviderResult]):
         # OR we can inject the runtime options into the config dict in `pre_process`.
         
         # Let's inject into config in pre_process.
-        return super().get(name, options)
+        logger.debug(f"Getting provider config for: {name}")
+        result = super().get(name, options)
+        logger.debug(f"Resolved provider config for {name}. Env overwrites: {result.env_overwrites}")
+        return result
 
     def pre_process(self, config: Dict[str, Any], options: ProviderOptions) -> Dict[str, Any]:
         # 1. Merge global
@@ -96,9 +102,11 @@ class ProviderConfig(ConfigResolver[ProviderOptions, ProviderResult]):
 
         # 2. Inject runtime env specs if provided (override what's in YAML)
         if options.overwrite_from_env is not None:
+            logger.debug(f"Injecting runtime overwrite_from_env for provider: {options.overwrite_from_env}")
             config['overwrite_from_env'] = options.overwrite_from_env
             
         if options.fallbacks_from_env is not None:
+            logger.debug(f"Injecting runtime fallbacks_from_env for provider: {options.fallbacks_from_env}")
             config['fallbacks_from_env'] = options.fallbacks_from_env
             
         return config

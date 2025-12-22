@@ -40,6 +40,8 @@ export class ServiceConfig extends ConfigResolver<ServiceOptions, ServiceResult>
         resolutionSources: Record<string, ResolutionSource>,
         options: ServiceOptions
     ): ServiceResult {
+        // Log config keys to avoid dumping secrets potentially, just to show successful resolution
+        console.debug(`[ServiceConfig] Resolved service config for ${name}. Config keys:`, Object.keys(config));
         return {
             name,
             config,

@@ -118,7 +118,7 @@ dev-fastify:
 		BUILD_ID=$(BUILD_ID) \
 		BUILD_VERSION=$(BUILD_VERSION) \
 		GIT_COMMIT=$(GIT_COMMIT) \
-		node src/index.mjs
+		node src/main.mjs
 
 # Run FastAPI backend (fastapi_server)
 dev-fastapi:

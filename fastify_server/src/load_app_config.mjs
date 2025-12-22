@@ -6,7 +6,6 @@ import { AppYamlConfig } from '@internal/app-yaml-config';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { vaultFile } from './load_app_env.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..', '..');
@@ -40,7 +39,7 @@ try {
   if (loaded.length) console.log(`  Loaded: ${loaded.join(', ')}`);
   if (notLoaded.length) console.log(`  Not found: ${notLoaded.join(', ')}`);
   console.log(`App Name: ${config.getNested(['app', 'name'])}`);
-  if (vaultFile) console.log(`  Vault file: ${vaultFile}`);
+  if (process.env.VAULT_SECRET_FILE) console.log(`  Vault file: ${process.env.VAULT_SECRET_FILE}`);
 } catch (err) {
   if (err.code === 'ENOENT') {
     console.error(`[FATAL] Config file missing: ${err.message}`);

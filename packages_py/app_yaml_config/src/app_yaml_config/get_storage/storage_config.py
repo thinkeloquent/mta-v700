@@ -1,9 +1,12 @@
 
 import re
+import logging
 from typing import Dict, Any, List, Optional
 from ..config_resolver import ConfigResolver
 from ..validators import StorageNotFoundError
 from .types import StorageResult, StorageOptions, ResolutionSource
+
+logger = logging.getLogger(__name__)
 
 class StorageConfig(ConfigResolver[StorageOptions, StorageResult]):
     """Helper class to retrieve storage configurations."""
@@ -29,6 +32,12 @@ class StorageConfig(ConfigResolver[StorageOptions, StorageResult]):
 
     def get_default_options(self, options: Optional[StorageOptions]) -> StorageOptions:
         return options or StorageOptions()
+
+    def get(self, name: str, options: Optional[StorageOptions] = None) -> StorageResult:
+        logger.debug(f"Getting storage config for: {name}")
+        result = super().get(name, options)
+        logger.debug(f"Resolved storage config for {name}. Env overwrites: {result.env_overwrites}")
+        return result
 
     def build_result(
         self,

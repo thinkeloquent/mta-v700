@@ -4,7 +4,7 @@
 
 import Fastify from "fastify";
 import { AppYamlConfig } from "@internal/app-yaml-config";
-import "./load_app_env.mjs";
+// import "./load_app_env.mjs"; // Handled in main.mjs now
 import "./load_app_config.mjs";
 import { printRoutes } from "./print_routes.mjs";
 import vaultFileRoutes from "./routes/healthz/vault-file.mjs";

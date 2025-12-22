@@ -54,6 +54,7 @@ app-yaml-config = {path = "../packages_py/app_yaml_config", develop = true}
 db_connection_elasticsearch = {path = "../packages_py/db_connection_elasticsearch", develop = true}
 db_connection_postgres = {path = "../packages_py/db_connection_postgres", develop = true}
 db_connection_redis = {path = "../packages_py/db_connection_redis", develop = true}
+env_resolve = {path = "../packages_py/env_resolve", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.0"

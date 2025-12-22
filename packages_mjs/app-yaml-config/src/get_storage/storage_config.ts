@@ -38,6 +38,7 @@ export class StorageConfig extends ConfigResolver<StorageOptions, StorageResult>
         resolutionSources: Record<string, ResolutionSource>,
         options: StorageOptions
     ): StorageResult {
+        console.debug(`[StorageConfig] Resolved storage config for ${name}. Env overwrites:`, envOverwrites);
         return {
             name,
             config,

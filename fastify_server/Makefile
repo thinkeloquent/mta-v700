@@ -2,7 +2,7 @@
 
 # Development server
 dev:
-	PORT=51000 node src/index.mjs
+	PORT=51000 node src/main.mjs
 
 # Install dependencies
 install:

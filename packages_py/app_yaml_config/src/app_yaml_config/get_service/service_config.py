@@ -1,8 +1,11 @@
 
 from typing import Dict, Any, List, Optional
+import logging
 from ..config_resolver import ConfigResolver
 from ..validators import ServiceNotFoundError
 from .types import ServiceResult, ServiceOptions, ResolutionSource
+
+logger = logging.getLogger(__name__)
 
 class ServiceConfig(ConfigResolver[ServiceOptions, ServiceResult]):
     """Helper class to retrieve service configurations."""
@@ -28,6 +31,12 @@ class ServiceConfig(ConfigResolver[ServiceOptions, ServiceResult]):
 
     def get_default_options(self, options: Optional[ServiceOptions]) -> ServiceOptions:
         return options or ServiceOptions()
+
+    def get(self, name: str, options: Optional[ServiceOptions] = None) -> ServiceResult:
+        logger.debug(f"Getting service config for: {name}")
+        result = super().get(name, options)
+        logger.debug(f"Resolved service config for {name}. Config keys: {list(result.config.keys())}")
+        return result
 
     def build_result(
         self,

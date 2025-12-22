@@ -1,51 +1,40 @@
-"""FastAPI Hello World Server."""
+"""
+Server Entry Point
+Loads vault-file ENV variables before importing the server.
+"""
 
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from .app_yaml_config import AppYamlConfig
-from . import load_app_env  # noqa: F401 - loads .env and vault file
-from . import load_app_config  # noqa: F401 - loads AppYamlConfig
-from .print_routes import print_routes
-from .routes.healthz import (
-    vault_file,
-    app_yaml_config,
-    db_connection_elasticsearch,
-    db_connection_postgres,
-    db_connection_redis,
-)
+import os
+from dotenv import load_dotenv
+from vault_file import EnvStore, VaultFile
 
+# Step 1: Load .env file if exists
+app_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(app_dir, ".env")
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    print(f"  .env file: {env_path}")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print_routes(app)
-    yield
-    # Shutdown (if needed)
+# Step 2: Initialize Vault File with base64 file parsers
+vault_file = os.getenv("VAULT_SECRET_FILE")
+if vault_file:
+    try:
+        EnvStore.on_startup(
+            vault_file,
+            base64_file_parsers={
+                'FILE_APP_ENV': lambda store: VaultFile.from_base64_auto(
+                    store.get('FILE_APP_ENV')
+                )[0] if store.get('FILE_APP_ENV') else None
+            }
+        )
+        print(f"  Vault file loaded: {vault_file}")
+    except Exception as e:
+        print(f"Failed to load vault file: {e}")
+        # We might want to exit here if vault is critical, but preserving existing behavior for now
+else:
+    print("VAULT_SECRET_FILE env var not set, skipping EnvStore initialization")
 
+# Step 3: Import and expose the app (after ENV is loaded)
+# This import must happen AFTER EnvStore.on_startup so that AppYamlConfig sees the env vars
+from .app import app  # noqa: E402
 
-config = AppYamlConfig.get_instance()
-
-app = FastAPI(
-    title=config.get_nested("app", "name", default="MTA Server"),
-    description=config.get_nested("app", "description", default=""),
-    version=config.get_nested("app", "version", default="0.0.0"),
-    lifespan=lifespan,
-)
-
-
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {"message": "Hello World"}
-
-
-@app.get("/health")
-async def health():
-    """Health check endpoint."""
-    return {"status": "healthy"}
-
-
-app.include_router(vault_file.router)
-app.include_router(app_yaml_config.router)
-app.include_router(db_connection_elasticsearch.router)
-app.include_router(db_connection_postgres.router)
-app.include_router(db_connection_redis.router)
+__all__ = ["app"]
