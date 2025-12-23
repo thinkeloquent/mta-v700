@@ -35,6 +35,26 @@ try {
   });
 
   const config = AppYamlConfig.getInstance();
+
+  // Register Factory Computed Definitions
+  // Use dynamic import for factory to ensure it runs after init if needed, or static is fine.
+  // We need to import YamlConfigFactory. typescript? This is .mjs file.
+  // We can import from @internal/yaml-config-factory
+  const { YamlConfigFactory } = await import('@internal/yaml-config-factory');
+  const factory = new YamlConfigFactory(config);
+
+  const exposeAuth = config.get('expose_yaml_config_compute_auth') || {};
+  const categories = ['providers', 'services', 'storages'];
+
+  for (const cat of categories) {
+    const items = exposeAuth[cat] || [];
+    for (const item of items) {
+      const key = `auth:${cat}.${item}`;
+      const path = `${cat}.${item}`;
+      config.registerComputed(key, (c) => factory.compute(path));
+    }
+  }
+
   console.log('AppYamlConfig initialized.');
   if (loaded.length) console.log(`  Loaded: ${loaded.join(', ')}`);
   if (notLoaded.length) console.log(`  Not found: ${notLoaded.join(', ')}`);

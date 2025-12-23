@@ -1,144 +1,58 @@
-/**
- * AppYamlConfig healthz routes.
- */
+import { AppYamlConfig } from '@internal/app-yaml-config';
 
-import { AppYamlConfig, getProvider, getService, getStorage } from '@internal/app-yaml-config';
-
-export default async function appYamlConfigRoutes(fastify) {
-  fastify.get('/healthz/admin/app-yaml-config/status', async (request, reply) => {
+export default async function (fastify, opts) {
+  fastify.get('/compute/*', async (request, reply) => {
     const config = AppYamlConfig.getInstance();
-    const loadResult = config.getLoadResult?.() || null;
-    return {
-      initialized: config.isInitialized?.() ?? true,
-      appEnv: loadResult?.appEnv || null,
-      filesLoaded: loadResult?.filesLoaded || [],
-    };
-  });
+    const name = request.params['*'];
 
-  fastify.get('/healthz/admin/app-yaml-config/json', async (request, reply) => {
-    const config = AppYamlConfig.getInstance();
-    return config.getAll();
-  });
+    // 1. Check Standard Allowlist
+    const allowedCompute = config.get('expose_yaml_config_compute') || [];
 
+    // 2. Check Auth Allowlist
+    const isAuthRequest = name.startsWith('auth:');
 
-  const getExposeComputeAllowlist = () => {
-    const config = AppYamlConfig.getInstance();
-    return config.get('expose_yaml_config_compute') || [];
-  };
-
-  fastify.get('/healthz/admin/app-yaml-config/compute/:name', async (request, reply) => {
-    const { name } = request.params;
-
-    if (!getExposeComputeAllowlist().includes(name)) {
-      reply.code(403);
-      return { error: 'Access denied to this computed property' };
-    }
-
-    const config = AppYamlConfig.getInstance();
-    try {
-      const val = config.getComputed(name);
-      return { name, value: val };
-    } catch (e) {
-      if (e.name === 'ComputedKeyNotFoundError' || e.message.includes('not defined')) {
-        reply.code(404);
-        return { error: `Computed key '${name}' not found` };
+    if (isAuthRequest) {
+      const pathParts = name.substring(5).split('.');
+      if (pathParts.length !== 2) {
+        return reply.code(400).send({ error: 'Invalid auth path format' });
       }
-      throw e;
-    }
-  });
 
+      const configType = pathParts[0];
+      const configName = pathParts[1];
 
-  const getExposeProviderAllowlist = () => {
-    const config = AppYamlConfig.getInstance();
-    return config.get('expose_yaml_config_provider') || [];
-  };
+      const exposeAuth = config.get('expose_yaml_config_compute_auth') || {};
+      const allowedNames = exposeAuth[configType] || [];
 
-  fastify.get('/healthz/admin/app-yaml-config/provider/:name', async (request, reply) => {
-    const { name } = request.params;
-
-    if (!getExposeProviderAllowlist().includes(name)) {
-      reply.code(403);
-      return { error: 'Access denied to this provider configuration' };
+      if (!allowedNames.includes(configName)) {
+        return reply.code(403).send({ error: `${name} not in allowlist` });
+      }
+    } else if (!allowedCompute.includes(name)) {
+      return reply.code(403).send({ error: `${name} not in allowlist` });
     }
 
     try {
-      const result = getProvider(name);
-      return result;
-    } catch (e) {
-      if (e.name === 'ProviderNotFoundError') {
-        reply.code(404);
-        return { error: `Provider '${name}' not found` };
+      const value = config.getComputed(name);
+
+      if (isAuthRequest) {
+        // Safe transformation
+        const authConfig = value.authConfig;
+        if (authConfig) {
+          const safeVal = {
+            type: authConfig.type,
+            providerName: authConfig.providerName,
+            tokenResolved: !!authConfig.token,
+            tokenSource: authConfig.resolution?.resolvedFrom || 'unknown',
+            username: authConfig.username,
+            tokenPreview: authConfig.token ? `${authConfig.token.substring(0, 4)}...` : null
+          };
+          return { name, value: safeVal };
+        }
       }
-      throw e;
+
+      return { name, value };
+    } catch (err) {
+      request.log.error(err);
+      return reply.code(500).send({ error: err.message });
     }
-  });
-
-  fastify.get('/healthz/admin/app-yaml-config/providers', async (request, reply) => {
-    const config = AppYamlConfig.getInstance();
-    const providers = config.get('providers') || {};
-    return Object.keys(providers);
-  });
-
-  const getExposeServiceAllowlist = () => {
-    const config = AppYamlConfig.getInstance();
-    return config.get('expose_yaml_config_service') || [];
-  };
-
-  fastify.get('/healthz/admin/app-yaml-config/service/:name', async (request, reply) => {
-    const { name } = request.params;
-
-    if (!getExposeServiceAllowlist().includes(name)) {
-      reply.code(403);
-      return { error: 'Access denied to this service configuration' };
-    }
-
-    try {
-      const result = getService(name);
-      return result;
-    } catch (e) {
-      if (e.name === 'ServiceNotFoundError') {
-        reply.code(404);
-        return { error: `Service '${name}' not found` };
-      }
-      throw e;
-    }
-  });
-
-  fastify.get('/healthz/admin/app-yaml-config/services', async (request, reply) => {
-    const config = AppYamlConfig.getInstance();
-    const services = config.get('services') || {};
-    return Object.keys(services);
-  });
-
-  const getExposeStorageAllowlist = () => {
-    const config = AppYamlConfig.getInstance();
-    return config.get('expose_yaml_config_storage') || [];
-  };
-
-  fastify.get('/healthz/admin/app-yaml-config/storage/:name', async (request, reply) => {
-    const { name } = request.params;
-
-    if (!getExposeStorageAllowlist().includes(name)) {
-      reply.code(403);
-      return { error: 'Access denied to this storage configuration' };
-    }
-
-    try {
-      const result = getStorage(name);
-      return result;
-    } catch (e) {
-      if (e.name === 'StorageNotFoundError') {
-        reply.code(404);
-        return { error: `Storage '${name}' not found` };
-      }
-      throw e;
-    }
-  });
-
-  fastify.get('/healthz/admin/app-yaml-config/storages', async (request, reply) => {
-    const config = AppYamlConfig.getInstance();
-    const storages = config.get('storage') || {};
-    return Object.keys(storages);
   });
 }
-

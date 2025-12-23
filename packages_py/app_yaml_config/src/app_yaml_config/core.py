@@ -203,6 +203,21 @@ class AppYamlConfig:
     def get_load_result(self) -> Optional[LoadResult]:
         return self._load_result
 
+    def register_computed(self, key: str, definition: ComputedDefinition) -> None:
+        """Register a computed definition after initialization.
+        
+        Useful for factory-generated definitions that depend on the config being loaded first
+        to determine which keys to expose.
+        """
+        if not self._initialized:
+             raise ConfigNotInitializedError("Not initialized")
+        
+        if key in self._computed_definitions:
+            logger.warning(f"Overwriting existing computed definition for '{key}'")
+            
+        self._computed_definitions[key] = definition
+
+
     # Forbidden methods (No-op or raise)
     def reset(self): raise NotImplementedError("Immutable config")
     def clear(self): raise NotImplementedError("Immutable config")

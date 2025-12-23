@@ -28,6 +28,28 @@ try:
         }
     )
     config = AppYamlConfig.get_instance()
+    
+    # Register Factory Computed Definitions
+    from yaml_config_factory import YamlConfigFactory
+    factory = YamlConfigFactory(config)
+    
+    # helper to register
+    def register_auth_keys(config_type: str, allowlist_key: str):
+        allowed = config.get(allowlist_key, [])
+        if isinstance(allowed, dict): # Handle dict structure if yaml is parsed that way, but list expected
+             allowed = [] 
+        # Actually in yaml: expose_yaml_config_compute_auth: { providers: [a,b] }
+        # So we need to look deeper.
+        
+    expose_auth = config.get("expose_yaml_config_compute_auth", {})
+    if expose_auth:
+        for cat in ['providers', 'services', 'storages']:
+            items = expose_auth.get(cat, [])
+            for item in items:
+                key = f"auth:{cat}.{item}"
+                # Capture current item in lambda default arg
+                config.register_computed(key, lambda c, p=f"{cat}.{item}": factory.compute(p))
+
     print(f"AppYamlConfig initialized.")
     if loaded: print(f"  Loaded: {', '.join(loaded)}")
     if not_loaded: print(f"  Not found: {', '.join(not_loaded)}")

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "yaml-config-factory"
+version = "0.1.0"
+description = "Factory for computing auth-resolved config from YamlConfig paths"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "yaml_config_factory", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+app-yaml-config = {path = "../app_yaml_config", develop = true}
+fetch-auth-config = {path = "../fetch_auth_config", develop = true}
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

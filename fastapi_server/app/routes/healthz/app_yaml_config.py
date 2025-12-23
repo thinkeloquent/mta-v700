@@ -1,158 +1,64 @@
-"""AppYamlConfig healthz routes."""
+from fastapi import APIRouter, HTTPException
+from app_yaml_config import AppYamlConfig
 
-from fastapi import APIRouter
-from ...app_yaml_config import AppYamlConfig
+router = APIRouter()
 
-router = APIRouter(prefix="/healthz/admin/app-yaml-config", tags=["Admin"])
-
-
-@router.get("/status")
-async def app_yaml_config_status():
-    """AppYamlConfig status."""
+@router.get("/compute/{name:path}")
+async def get_compute(name: str):
+    """Get computed value by name, supports auth:providers.x pattern."""
     config = AppYamlConfig.get_instance()
-    load_result = config.get_load_result()
-    return {
-        "initialized": config.is_initialized(),
-        "app_env": load_result.app_env if load_result else None,
-        "files_loaded": load_result.files_loaded if load_result else [],
-    }
-
-
-@router.get("/json")
-async def app_yaml_config_json():
-    """AppYamlConfig contents as JSON."""
-    config = AppYamlConfig.get_instance()
-    return config.get_all()
-
-
-
-def _get_expose_compute_allowlist() -> set:
-    """Get allowlist from YAML config."""
-    config = AppYamlConfig.get_instance()
-    return set(config.get("expose_yaml_config_compute") or [])
-
-
-@router.get("/compute/{name}")
-async def app_yaml_config_compute(name: str):
-    """Get a computed configuration value."""
-    if name not in _get_expose_compute_allowlist():
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Access denied to this computed property")
-
-    config = AppYamlConfig.get_instance()
-    try:
-        val = config.get_computed(name)
-        return {"name": name, "value": val}
-    except Exception as e:
-        # Catching generic exception as specific exceptions might not be imported here
-        # Ideally we should import ComputedKeyNotFoundError
-        from ...app_yaml_config import AppYamlConfig as AppConfigModule
-        # Re-import to be safe or check exception type string
-        if "ComputedKeyNotFoundError" in str(type(e)):
-             from fastapi import HTTPException
-             raise HTTPException(status_code=404, detail=f"Computed key '{name}' not found")
-        raise e
-
-
-def _get_expose_provider_allowlist() -> set:
-    """Get allowlist from YAML config."""
-    config = AppYamlConfig.get_instance()
-    return set(config.get("expose_yaml_config_provider") or [])
-
-
-@router.get("/provider/{name}")
-async def app_yaml_config_provider(name: str):
-    """Get a provider configuration."""
-    if name not in _get_expose_provider_allowlist():
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Access denied to this provider configuration")
-
-    try:
-        from dataclasses import asdict
-        from ...app_yaml_config import get_provider, ProviderNotFoundError
+    
+    # 1. Check Standard Compute Allowlist
+    allowed_compute = config.get("expose_yaml_config_compute", [])
+    
+    # 2. Check Auth Compute Allowlist
+    is_auth_request = name.startswith("auth:")
+    if is_auth_request:
+        path_parts = name[5:].split(".") # Remove 'auth:'
+        if len(path_parts) != 2:
+             raise HTTPException(status_code=400, detail="Invalid auth path format")
+             
+        config_type = path_parts[0] # providers, services
+        config_name = path_parts[1]
         
-        result = get_provider(name)
-        return asdict(result)
-    except Exception as e:
-        if "ProviderNotFoundError" in str(type(e)):
-             from fastapi import HTTPException
-             raise HTTPException(status_code=404, detail=f"Provider '{name}' not found")
-        raise e
-
-
-
-@router.get("/providers")
-async def app_yaml_config_list_providers():
-    """List all available providers."""
-    config = AppYamlConfig.get_instance()
-    providers = config.get("providers") or {}
-    return list(providers.keys())
-
-
-def _get_expose_service_allowlist() -> set:
-    """Get allowlist from YAML config."""
-    config = AppYamlConfig.get_instance()
-    return set(config.get("expose_yaml_config_service") or [])
-
-
-@router.get("/service/{name}")
-async def app_yaml_config_service(name: str):
-    """Get a service configuration."""
-    if name not in _get_expose_service_allowlist():
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Access denied to this service configuration")
+        expose_auth = config.get("expose_yaml_config_compute_auth", {})
+        allowed_names = expose_auth.get(config_type, [])
+        
+        if config_name not in allowed_names:
+             raise HTTPException(status_code=403, detail=f"{name} not in allowlist")
+             
+    elif name not in allowed_compute:
+        raise HTTPException(status_code=403, detail=f"{name} not in allowlist")
 
     try:
-        from dataclasses import asdict
-        from ...app_yaml_config import get_service, ServiceNotFoundError
+        value = config.get_computed(name)
+        # If it's auth, we might want to mask token? 
+        # The factory returns {auth_config: ..., headers: ...}
+        # Ideally we return the resolved object.
+        # But we should be careful about secrets in HTTP response.
+        # The PLAN says: "Never expose raw tokens in healthz responses - only metadata"
         
-        result = get_service(name)
-        return asdict(result)
+        if is_auth_request:
+            # Transform for safe display
+            # Value is likely {auth_config: AuthConfig, headers? }
+            # Or just AuthConfig if factory.compute wrapper returned it directly?
+            # Factory.compute returns Dict with auth_config.
+            
+            # Since register_computed lambda called factory.compute, value IS the dict.
+            auth_config = value.get("auth_config")
+            if auth_config:
+                 # Create safe representation
+                 safe_val = {
+                     "type": auth_config.type,
+                     "provider_name": auth_config.provider_name,
+                     "token_resolved": bool(auth_config.token),
+                     "token_source": auth_config.resolution.resolved_from if auth_config.resolution else "unknown",
+                     "username": auth_config.username,
+                     # Mask token
+                     "token_preview": f"{auth_config.token[:4]}..." if auth_config.token else None
+                 }
+                 return {"name": name, "value": safe_val}
+
+        return {"name": name, "value": value}
     except Exception as e:
-        if "ServiceNotFoundError" in str(type(e)):
-             from fastapi import HTTPException
-             raise HTTPException(status_code=404, detail=f"Service '{name}' not found")
-        raise e
-
-
-@router.get("/services")
-async def app_yaml_config_list_services():
-    """List all available services."""
-    config = AppYamlConfig.get_instance()
-    services = config.get("services") or {}
-    return list(services.keys())
-
-
-def _get_expose_storage_allowlist() -> set:
-    """Get allowlist from YAML config."""
-    config = AppYamlConfig.get_instance()
-    return set(config.get("expose_yaml_config_storage") or [])
-
-
-@router.get("/storage/{name}")
-async def app_yaml_config_storage(name: str):
-    """Get a storage configuration."""
-    if name not in _get_expose_storage_allowlist():
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Access denied to this storage configuration")
-
-    try:
-        from dataclasses import asdict
-        from ...app_yaml_config import get_storage, StorageNotFoundError
-        
-        result = get_storage(name)
-        return asdict(result)
-    except Exception as e:
-        if "StorageNotFoundError" in str(type(e)):
-             from fastapi import HTTPException
-             raise HTTPException(status_code=404, detail=f"Storage '{name}' not found")
-        raise e
-
-
-@router.get("/storages")
-async def app_yaml_config_list_storages():
-    """List all available storages."""
-    config = AppYamlConfig.get_instance()
-    storages = config.get("storage") or {}
-    return list(storages.keys())
-
+        raise HTTPException(status_code=500, detail=str(e))

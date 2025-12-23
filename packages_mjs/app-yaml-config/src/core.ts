@@ -219,4 +219,15 @@ export class AppYamlConfig {
     public getLoadResult(): LoadResult | null {
         return this.loadResult;
     }
+
+    public registerComputed(key: string, definition: ComputedDefinition): void {
+        if (!this.initialized) {
+            throw new ConfigNotInitializedError();
+        }
+        if (key in this.computedDefinitions) {
+            console.warn(`Overwriting existing computed definition for '${key}'`);
+        }
+        this.computedDefinitions[key] = definition;
+    }
+
 }
