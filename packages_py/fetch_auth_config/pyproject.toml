@@ -1,0 +1,22 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "fetch-auth-config"
+version = "0.1.0"
+description = "Authentication configuration resolver"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "fetch_auth_config", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pydantic = "^2.0.0"
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
