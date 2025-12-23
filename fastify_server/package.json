@@ -17,7 +17,9 @@
     "@internal/proxy-dispatcher": "workspace:*",
     "@internal/db-connection-elasticsearch": "workspace:*",
     "@internal/db_connection_postgres": "workspace:*",
-    "@internal/db_connection_redis": "workspace:*"
+    "@internal/db_connection_redis": "workspace:*",
+    "@internal/fetch-auth-config": "workspace:*",
+    "@internal/fetch-auth-encoding": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0"

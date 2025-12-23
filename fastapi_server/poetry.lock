@@ -662,6 +662,38 @@ standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.8)", "htt
 standard-no-fastapi-cloud-cli = ["email-validator (>=2.0.0)", "fastapi-cli[standard-no-fastapi-cloud-cli] (>=0.0.8)", "httpx (>=0.23.0,<1.0.0)", "jinja2 (>=3.1.5)", "pydantic-extra-types (>=2.0.0)", "pydantic-settings (>=2.0.0)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
 
 [[package]]
+name = "fetch-auth-config"
+version = "0.1.0"
+description = "Authentication configuration resolver"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
+pydantic = "^2.0.0"
+
+[package.source]
+type = "directory"
+url = "../packages_py/fetch_auth_config"
+
+[[package]]
+name = "fetch-auth-encoding"
+version = "0.1.0"
+description = "Authentication header encoding utilities"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "../packages_py/fetch_auth_encoding"
+
+[[package]]
 name = "frozenlist"
 version = "1.8.0"
 description = "A list-like structure which implements collections.abc.MutableSequence"
@@ -1455,6 +1487,41 @@ files = [
     {file = "protobuf-6.33.2-py3-none-any.whl", hash = "sha256:7636aad9bb01768870266de5dc009de2d1b936771b38a793f73cbbf279c91c5c"},
     {file = "protobuf-6.33.2.tar.gz", hash = "sha256:56dc370c91fbb8ac85bc13582c9e373569668a290aa2e66a590c2a0d35ddb9e4"},
 ]
+
+[[package]]
+name = "proxy-config"
+version = "1.0.0"
+description = "Network configuration and proxy resolution for Python applications"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+pydantic = ">=2.0.0"
+
+[package.source]
+type = "directory"
+url = "../packages_py/proxy_config"
+
+[[package]]
+name = "proxy-dispatcher"
+version = "1.0.0"
+description = "HTTP client factory with proxy configuration for Python applications"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+httpx = ">=0.24.0"
+proxy_config = {path = "../proxy_config", develop = true}
+
+[package.source]
+type = "directory"
+url = "../packages_py/proxy_dispatcher"
 
 [[package]]
 name = "psycopg2-binary"
@@ -2362,6 +2429,25 @@ files = [
 ]
 
 [[package]]
+name = "yaml-config-factory"
+version = "0.1.0"
+description = "Factory for computing auth-resolved config from YamlConfig paths"
+optional = false
+python-versions = "^3.11"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+app-yaml-config = {path = "../app_yaml_config", develop = true}
+fetch-auth-config = {path = "../fetch_auth_config", develop = true}
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
+
+[package.source]
+type = "directory"
+url = "../packages_py/yaml_config_factory"
+
+[[package]]
 name = "yarl"
 version = "1.22.0"
 description = "Yet another URL library"
@@ -2512,4 +2598,4 @@ dev = ["httpx", "pytest"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "ec6459796db2dbab1f5f13788809f30c4c73198142e4db2b6b3203320e1b30a9"
+content-hash = "9cbe491a62b70d92d5dd4e2f7831af39884b0d6a7158e9d9e57e27faa55a54b7"

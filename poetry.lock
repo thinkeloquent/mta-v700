@@ -683,9 +683,13 @@ db-connection-elasticsearch = "*"
 db-connection-postgres = "*"
 db-connection-redis = "*"
 fastapi = ">=0.104.0"
+fetch-auth-config = {path = "/Users/Shared/autoload/mta-v700/packages_py/fetch_auth_config"}
+fetch-auth-encoding = {path = "/Users/Shared/autoload/mta-v700/packages_py/fetch_auth_encoding"}
 greenlet = ">=3.3.0,<4.0.0"
+proxy-dispatcher = {path = "/Users/Shared/autoload/mta-v700/packages_py/proxy_dispatcher"}
 uvicorn = {version = ">=0.24.0", extras = ["standard"]}
 vault-file = "*"
+yaml-config-factory = {path = "/Users/Shared/autoload/mta-v700/packages_py/yaml_config_factory"}
 
 [package.extras]
 dev = ["httpx (>=0.25.0)", "pytest (>=7.4.0)"]
@@ -693,6 +697,38 @@ dev = ["httpx (>=0.25.0)", "pytest (>=7.4.0)"]
 [package.source]
 type = "directory"
 url = "fastapi_server"
+
+[[package]]
+name = "fetch-auth-config"
+version = "0.1.0"
+description = "Authentication configuration resolver"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
+pydantic = "^2.0.0"
+
+[package.source]
+type = "directory"
+url = "packages_py/fetch_auth_config"
+
+[[package]]
+name = "fetch-auth-encoding"
+version = "0.1.0"
+description = "Authentication header encoding utilities"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "packages_py/fetch_auth_encoding"
 
 [[package]]
 name = "frozenlist"
@@ -1607,6 +1643,41 @@ files = [
     {file = "protobuf-6.33.2-py3-none-any.whl", hash = "sha256:7636aad9bb01768870266de5dc009de2d1b936771b38a793f73cbbf279c91c5c"},
     {file = "protobuf-6.33.2.tar.gz", hash = "sha256:56dc370c91fbb8ac85bc13582c9e373569668a290aa2e66a590c2a0d35ddb9e4"},
 ]
+
+[[package]]
+name = "proxy-config"
+version = "1.0.0"
+description = "Network configuration and proxy resolution for Python applications"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+pydantic = ">=2.0.0"
+
+[package.source]
+type = "directory"
+url = "packages_py/proxy_config"
+
+[[package]]
+name = "proxy-dispatcher"
+version = "1.0.0"
+description = "HTTP client factory with proxy configuration for Python applications"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+httpx = ">=0.24.0"
+proxy_config = {path = "../proxy_config", develop = true}
+
+[package.source]
+type = "directory"
+url = "packages_py/proxy_dispatcher"
 
 [[package]]
 name = "psycopg2-binary"
@@ -2597,6 +2668,25 @@ files = [
     {file = "websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f"},
     {file = "websockets-15.0.1.tar.gz", hash = "sha256:82544de02076bafba038ce055ee6412d68da13ab47f0c60cab827346de828dee"},
 ]
+
+[[package]]
+name = "yaml-config-factory"
+version = "0.1.0"
+description = "Factory for computing auth-resolved config from YamlConfig paths"
+optional = false
+python-versions = "^3.11"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+app-yaml-config = {path = "../app_yaml_config", develop = true}
+fetch-auth-config = {path = "../fetch_auth_config", develop = true}
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
+
+[package.source]
+type = "directory"
+url = "packages_py/yaml_config_factory"
 
 [[package]]
 name = "yarl"

@@ -31,7 +31,7 @@ export function extractEnvMappings(
     }
 
     return {
-        apiKey: getChain('api_key', 'env_api_key'),
+        apiKey: getChain('endpoint_api_key', 'endpoint_api_key'),
         email: getChain('email', 'env_email'),
         username: getChain('username', 'env_username'),
         password: getChain('password', 'env_password'),

@@ -36,7 +36,7 @@ def extract_env_mappings(provider_config: Dict[str, Any]) -> ProviderEnvMappings
         )
 
     return ProviderEnvMappings(
-        api_key=_get_chain("api_key", "env_api_key"),
+        api_key=_get_chain("endpoint_api_key", "endpoint_api_key"),
         email=_get_chain("email", "env_email"),
         username=_get_chain("username", "env_username"),
         password=_get_chain("password", "env_password"),

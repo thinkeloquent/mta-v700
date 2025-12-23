@@ -2,6 +2,59 @@
 
 from fastapi import APIRouter, HTTPException
 from app_yaml_config import AppYamlConfig, get_provider, get_service, get_storage
+from fetch_auth_config import fetch_auth_config, AuthConfig
+from fetch_auth_encoding import encode_auth
+
+def _build_credentials(auth_config: AuthConfig) -> dict:
+    """Build credentials dict for encode_auth from AuthConfig."""
+    creds = {}
+    if auth_config.token:
+        creds['token'] = auth_config.token
+    if auth_config.username:
+        creds['username'] = auth_config.username
+    if auth_config.password:
+        creds['password'] = auth_config.password
+    if auth_config.email:
+        creds['email'] = auth_config.email
+    if auth_config.header_name:
+        creds['header_key'] = auth_config.header_name
+    if auth_config.header_value:
+        creds['header_value'] = auth_config.header_value
+    return creds
+
+def _mask_value(value: str, visible_chars: int = 4) -> str:
+    """Mask a secret value for safe display."""
+    if not value:
+        return None
+    if len(value) <= visible_chars:
+        return "****"
+    return f"{value[:visible_chars]}..."
+
+def _safe_auth_response(auth_config: AuthConfig, headers: dict) -> dict:
+    """Build a safe response without exposing raw secrets."""
+    return {
+        "auth_type": auth_config.type.value if hasattr(auth_config.type, 'value') else str(auth_config.type),
+        "provider_name": auth_config.provider_name,
+        "resolution": {
+            "resolved_from": auth_config.resolution.resolved_from,
+            "token_resolver": auth_config.resolution.token_resolver.value if hasattr(auth_config.resolution.token_resolver, 'value') else str(auth_config.resolution.token_resolver),
+            "is_placeholder": auth_config.resolution.is_placeholder,
+        },
+        "credentials": {
+            "token_resolved": bool(auth_config.token),
+            "token_preview": _mask_value(auth_config.token),
+            "username": auth_config.username,  # Usually not sensitive
+            "email": auth_config.email,
+            "password_resolved": bool(auth_config.password),
+            "header_name": auth_config.header_name,
+        },
+        "headers": {
+            # Mask Authorization header value
+            k: _mask_value(v) if k.lower() == "authorization" else v
+            for k, v in headers.items()
+        },
+        "headers_count": len(headers),
+    }
 
 router = APIRouter(prefix="/healthz/admin/app-yaml-config", tags=["Admin"])
 
@@ -166,3 +219,75 @@ async def get_storage_config(name: str):
         }
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/provider/{name}/auth_config")
+async def get_provider_auth_config(name: str):
+    """Resolve auth config for a provider."""
+    config = AppYamlConfig.get_instance()
+
+    # Check allowlist
+    allowed = config.get("expose_yaml_config_provider") or []
+    if name not in allowed:
+        raise HTTPException(status_code=403, detail=f"Provider '{name}' not in allowlist")
+
+    try:
+        # 1. Get provider config
+        # detailed options not imported yet, need to import ProviderOptions etc or pass dict?
+        # get_provider sig: (name, config=None, options=None). options is ProviderOptions.
+        from app_yaml_config import ProviderOptions
+        result = get_provider(name, config, options=ProviderOptions(remove_meta_keys=False))
+        provider_config = result.config
+
+        # 2. Resolve auth from env vars
+        auth_config = fetch_auth_config(name, provider_config)
+
+        # 3. Encode to headers
+        creds = _build_credentials(auth_config)
+        headers = encode_auth(auth_config.type.value, **creds)
+
+        # 4. Return safe response
+        return _safe_auth_response(auth_config, headers)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/service/{name}/auth_config")
+async def get_service_auth_config(name: str):
+    """Resolve auth config for a service."""
+    config = AppYamlConfig.get_instance()
+
+    allowed = config.get("expose_yaml_config_service") or []
+    if name not in allowed:
+        raise HTTPException(status_code=403, detail=f"Service '{name}' not in allowlist")
+
+    try:
+        from app_yaml_config import ServiceOptions
+        result = get_service(name, config, options=ServiceOptions(remove_meta_keys=False))
+        auth_config = fetch_auth_config(name, result.config)
+        creds = _build_credentials(auth_config)
+        headers = encode_auth(auth_config.type.value, **creds)
+        return _safe_auth_response(auth_config, headers)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/storage/{name}/auth_config")
+async def get_storage_auth_config(name: str):
+    """Resolve auth config for a storage."""
+    config = AppYamlConfig.get_instance()
+
+    allowed = config.get("expose_yaml_config_storage") or []
+    if name not in allowed:
+        raise HTTPException(status_code=403, detail=f"Storage '{name}' not in allowlist")
+
+    try:
+        from app_yaml_config import StorageOptions
+        result = get_storage(name, config, options=StorageOptions(remove_meta_keys=False))
+        auth_config = fetch_auth_config(name, result.config)
+        creds = _build_credentials(auth_config)
+        headers = encode_auth(auth_config.type.value, **creds)
+        return _safe_auth_response(auth_config, headers)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
