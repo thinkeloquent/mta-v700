@@ -233,6 +233,8 @@ develop = true
 
 [package.dependencies]
 deepmerge = "^2.0"
+fetch-auth-config = {path = "../fetch_auth_config", develop = true}
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
 python-dotenv = "^1.0.0"
 pyyaml = "^6.0"
 
@@ -706,7 +708,7 @@ optional = false
 python-versions = "^3.9"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
@@ -724,7 +726,7 @@ optional = false
 python-versions = "^3.9"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.source]
 type = "directory"
@@ -2683,6 +2685,7 @@ develop = false
 app-yaml-config = {path = "../app_yaml_config", develop = true}
 fetch-auth-config = {path = "../fetch_auth_config", develop = true}
 fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
+proxy-config = {path = "../proxy_config", develop = true}
 
 [package.source]
 type = "directory"

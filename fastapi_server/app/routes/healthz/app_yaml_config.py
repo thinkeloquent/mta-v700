@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter, HTTPException
 from app_yaml_config import AppYamlConfig, get_provider, get_service, get_storage
-from fetch_auth_config import fetch_auth_config, AuthConfig
+from fetch_auth_config import AuthConfig
 from fetch_auth_encoding import encode_auth
+from yaml_config_factory import YamlConfigFactory, ComputeOptions
 
 def _build_credentials(auth_config: AuthConfig) -> dict:
     """Build credentials dict for encode_auth from AuthConfig."""
@@ -232,22 +233,9 @@ async def get_provider_auth_config(name: str):
         raise HTTPException(status_code=403, detail=f"Provider '{name}' not in allowlist")
 
     try:
-        # 1. Get provider config
-        # detailed options not imported yet, need to import ProviderOptions etc or pass dict?
-        # get_provider sig: (name, config=None, options=None). options is ProviderOptions.
-        from app_yaml_config import ProviderOptions
-        result = get_provider(name, config, options=ProviderOptions(remove_meta_keys=False))
-        provider_config = result.config
-
-        # 2. Resolve auth from env vars
-        auth_config = fetch_auth_config(name, provider_config)
-
-        # 3. Encode to headers
-        creds = _build_credentials(auth_config)
-        headers = encode_auth(auth_config.type.value, **creds)
-
-        # 4. Return safe response
-        return _safe_auth_response(auth_config, headers)
+        factory = YamlConfigFactory(config)
+        result = factory.compute(f"providers.{name}", options=ComputeOptions(include_headers=True))
+        return _safe_auth_response(result.auth_config, result.headers)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -263,12 +251,9 @@ async def get_service_auth_config(name: str):
         raise HTTPException(status_code=403, detail=f"Service '{name}' not in allowlist")
 
     try:
-        from app_yaml_config import ServiceOptions
-        result = get_service(name, config, options=ServiceOptions(remove_meta_keys=False))
-        auth_config = fetch_auth_config(name, result.config)
-        creds = _build_credentials(auth_config)
-        headers = encode_auth(auth_config.type.value, **creds)
-        return _safe_auth_response(auth_config, headers)
+        factory = YamlConfigFactory(config)
+        result = factory.compute(f"services.{name}", options=ComputeOptions(include_headers=True))
+        return _safe_auth_response(result.auth_config, result.headers)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -283,12 +268,9 @@ async def get_storage_auth_config(name: str):
         raise HTTPException(status_code=403, detail=f"Storage '{name}' not in allowlist")
 
     try:
-        from app_yaml_config import StorageOptions
-        result = get_storage(name, config, options=StorageOptions(remove_meta_keys=False))
-        auth_config = fetch_auth_config(name, result.config)
-        creds = _build_credentials(auth_config)
-        headers = encode_auth(auth_config.type.value, **creds)
-        return _safe_auth_response(auth_config, headers)
+        factory = YamlConfigFactory(config)
+        result = factory.compute(f"storages.{name}", options=ComputeOptions(include_headers=True))
+        return _safe_auth_response(result.auth_config, result.headers)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -304,31 +286,155 @@ async def get_provider_proxy(name: str):
         raise HTTPException(status_code=403, detail=f"Provider '{name}' not in allowlist")
 
     try:
-        from app_yaml_config import ProviderOptions
-        from app_yaml_config.resolve_proxy import resolve_provider_proxy
-
-        result = get_provider(name, config, options=ProviderOptions(remove_meta_keys=False))
-        global_config = config.get("global") or {}
-        load_result = config.get_load_result()
-        app_env = load_result.app_env if load_result else "dev"
-
-        proxy_result = resolve_provider_proxy(
-            name,
-            result.config,
-            global_config,
-            app_env
-        )
+        factory = YamlConfigFactory(config)
+        # requesting proxy config directly to avoid auth resolution
+        result = factory.compute_proxy(f"providers.{name}")
 
         return {
             "provider_name": name,
-            "proxy_url": proxy_result.proxy_url,
+            "proxy_url": result.proxy_url,
             "resolution": {
-                "source": proxy_result.source,
-                "env_var_used": proxy_result.env_var_used,
-                "original_value": proxy_result.original_value,
-                "global_proxy": proxy_result.global_proxy,
-                "app_env": proxy_result.app_env,
+                "source": result.source,
+                "env_var_used": result.env_var_used,
+                "original_value": result.original_value,
+                "global_proxy": result.global_proxy,
+                "app_env": result.app_env,
             },
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/provider/{name}/runtime_config")
+async def get_provider_runtime_config(name: str):
+    """Get complete runtime configuration for a provider."""
+    config = AppYamlConfig.get_instance()
+    # Check allowlist
+    allowlist = config.get('expose_yaml_config_provider') or []
+    if name not in allowlist:
+        raise HTTPException(status_code=403, detail=f"Provider '{name}' not in allowlist")
+
+    try:
+        factory = YamlConfigFactory(config)
+        result = factory.compute_all(f"providers.{name}")
+
+        return {
+            "config_type": result.config_type,
+            "config_name": result.config_name,
+            "auth": _safe_auth_response(result.auth_config, result.headers) if result.auth_config else None,
+            "auth_error": {
+                "message": str(result.auth_error),
+                "type": type(result.auth_error).__name__
+            } if result.auth_error else None,
+            "proxy": {
+                "proxy_url": result.proxy_config.proxy_url,
+                "resolution": {
+                    "source": result.proxy_config.source,
+                    "env_var_used": result.proxy_config.env_var_used,
+                    "original_value": result.proxy_config.original_value,
+                    "global_proxy": result.proxy_config.global_proxy,
+                    "app_env": result.proxy_config.app_env,
+                }
+            } if result.proxy_config else None,
+            "network": {
+                "default_environment": result.network_config.default_environment,
+                "proxy_urls": result.network_config.proxy_urls,
+                "ca_bundle": result.network_config.ca_bundle,
+                "cert": result.network_config.cert,
+                "cert_verify": result.network_config.cert_verify,
+                "agent_proxy": result.network_config.agent_proxy
+            } if result.network_config else None,
+            "config": result.config,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/service/{name}/runtime_config")
+async def get_service_runtime_config(name: str):
+    """Get complete runtime configuration for a service."""
+    config = AppYamlConfig.get_instance()
+
+    allowlist = config.get('expose_yaml_config_service') or []
+    if name not in allowlist:
+        raise HTTPException(status_code=403, detail=f"Service '{name}' not in allowlist")
+
+    try:
+        factory = YamlConfigFactory(config)
+        result = factory.compute_all(f"services.{name}")
+
+        return {
+            "config_type": result.config_type,
+            "config_name": result.config_name,
+            "auth": _safe_auth_response(result.auth_config, result.headers) if result.auth_config else None,
+            "auth_error": {
+                "message": str(result.auth_error),
+                "type": type(result.auth_error).__name__
+            } if result.auth_error else None,
+            "proxy": {
+                "proxy_url": result.proxy_config.proxy_url,
+                "resolution": {
+                    "source": result.proxy_config.source,
+                    "env_var_used": result.proxy_config.env_var_used,
+                    "original_value": result.proxy_config.original_value,
+                    "global_proxy": result.proxy_config.global_proxy,
+                    "app_env": result.proxy_config.app_env,
+                }
+            } if result.proxy_config else None,
+            "network": {
+                "default_environment": result.network_config.default_environment,
+                "proxy_urls": result.network_config.proxy_urls,
+                "ca_bundle": result.network_config.ca_bundle,
+                "cert": result.network_config.cert,
+                "cert_verify": result.network_config.cert_verify,
+                "agent_proxy": result.network_config.agent_proxy
+            } if result.network_config else None,
+            "config": result.config,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/storage/{name}/runtime_config")
+async def get_storage_runtime_config(name: str):
+    """Get complete runtime configuration for a storage."""
+    config = AppYamlConfig.get_instance()
+
+    allowlist = config.get('expose_yaml_config_storage') or []
+    if name not in allowlist:
+        raise HTTPException(status_code=403, detail=f"Storage '{name}' not in allowlist")
+
+    try:
+        factory = YamlConfigFactory(config)
+        result = factory.compute_all(f"storages.{name}")
+
+        return {
+            "config_type": result.config_type,
+            "config_name": result.config_name,
+            "auth": _safe_auth_response(result.auth_config, result.headers) if result.auth_config else None,
+            "auth_error": {
+                "message": str(result.auth_error),
+                "type": type(result.auth_error).__name__
+            } if result.auth_error else None,
+            "proxy": {
+                "proxy_url": result.proxy_config.proxy_url,
+                "resolution": {
+                    "source": result.proxy_config.source,
+                    "env_var_used": result.proxy_config.env_var_used,
+                    "original_value": result.proxy_config.original_value,
+                    "global_proxy": result.proxy_config.global_proxy,
+                    "app_env": result.proxy_config.app_env,
+                }
+            } if result.proxy_config else None,
+            "network": {
+                "default_environment": result.network_config.default_environment,
+                "proxy_urls": result.network_config.proxy_urls,
+                "ca_bundle": result.network_config.ca_bundle,
+                "cert": result.network_config.cert,
+                "cert_verify": result.network_config.cert_verify,
+                "agent_proxy": result.network_config.agent_proxy
+            } if result.network_config else None,
+            "config": result.config,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

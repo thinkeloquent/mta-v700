@@ -6,6 +6,8 @@ import {
   ElasticsearchConfig,
   checkConnection,
 } from '@internal/db-connection-elasticsearch';
+import { AppYamlConfig } from '@internal/app-yaml-config';
+import { YamlConfigFactory, createRuntimeConfigResponse } from '@internal/yaml-config-factory';
 
 export default async function elasticsearchRoutes(fastify) {
   fastify.get('/healthz/admin/db-connection-elasticsearch/status', async (request, reply) => {
@@ -20,14 +22,10 @@ export default async function elasticsearchRoutes(fastify) {
   });
 
   fastify.get('/healthz/admin/db-connection-elasticsearch/config', async (request, reply) => {
-    const config = new ElasticsearchConfig();
-    return {
-      host: config.options.host,
-      port: config.options.port,
-      scheme: config.options.scheme,
-      vendor_type: config.options.vendorType,
-      use_tls: config.options.useTls,
-      verify_certs: config.options.verifyCerts,
-    };
+    const configInstance = AppYamlConfig.getInstance();
+    const factory = new YamlConfigFactory(configInstance);
+    // @ts-ignore - computeAll is typed but we are in JS
+    const result = factory.computeAll('storages.elasticsearch');
+    return createRuntimeConfigResponse(result);
   });
 }

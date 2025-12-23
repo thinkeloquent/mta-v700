@@ -19,6 +19,7 @@ export function fetchAuthConfig(
 
     // 1. Extract settings
     const authSettings = extractAuthSettings(providerConfig);
+
     const envMappings = extractEnvMappings(providerConfig);
 
     // 2. Route to resolver

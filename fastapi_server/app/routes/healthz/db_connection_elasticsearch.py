@@ -5,6 +5,8 @@ from db_connection_elasticsearch import (
     ElasticsearchConfig,
     check_connection,
 )
+from app_yaml_config import AppYamlConfig
+from yaml_config_factory import YamlConfigFactory, create_runtime_config_response
 
 router = APIRouter(prefix="/healthz/admin/db-connection-elasticsearch", tags=["Admin"])
 
@@ -25,12 +27,7 @@ async def elasticsearch_status():
 @router.get("/config")
 async def elasticsearch_config():
     """Elasticsearch configuration."""
-    config = ElasticsearchConfig()
-    return {
-        "host": config.host,
-        "port": config.port,
-        "scheme": config.scheme,
-        "vendor_type": config.vendor_type,
-        "use_tls": config.use_tls,
-        "verify_certs": config.verify_certs,
-    }
+    config_instance = AppYamlConfig.get_instance()
+    factory = YamlConfigFactory(config_instance)
+    result = factory.compute_all("storages.elasticsearch")
+    return create_runtime_config_response(result)

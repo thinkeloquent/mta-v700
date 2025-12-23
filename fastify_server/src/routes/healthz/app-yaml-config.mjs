@@ -1,20 +1,8 @@
 /**
  * AppYamlConfig healthz routes.
  */
-import { AppYamlConfig, getProvider, getService, getStorage, resolveProviderProxy } from '@internal/app-yaml-config';
-import { fetchAuthConfig } from '@internal/fetch-auth-config';
-import { encodeAuth } from '@internal/fetch-auth-encoding';
-
-function buildCredentials(authConfig) {
-  const creds = {};
-  if (authConfig.token) creds.token = authConfig.token;
-  if (authConfig.username) creds.username = authConfig.username;
-  if (authConfig.password) creds.password = authConfig.password;
-  if (authConfig.email) creds.email = authConfig.email;
-  if (authConfig.headerName) creds.headerKey = authConfig.headerName;
-  if (authConfig.headerValue) creds.headerValue = authConfig.headerValue;
-  return creds;
-}
+import { AppYamlConfig, getProvider, getService, getStorage } from '@internal/app-yaml-config';
+import { YamlConfigFactory } from '@internal/yaml-config-factory';
 
 function maskValue(value, visibleChars = 20) {
   if (!value) return null;
@@ -40,12 +28,12 @@ function safeAuthResponse(authConfig, headers) {
       headerName: authConfig.headerName,
     },
     headers: Object.fromEntries(
-      Object.entries(headers).map(([k, v]) => [
+      Object.entries(headers || {}).map(([k, v]) => [
         k,
         k.toLowerCase() === 'authorization' ? maskValue(v) : v
       ])
     ),
-    headersCount: Object.keys(headers).length,
+    headersCount: Object.keys(headers || {}).length,
   };
 }
 
@@ -218,6 +206,8 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       }
     });
 
+    // ==================== Auth Config Routes (Updated to use YamlConfigFactory) ====================
+
     fastify.get('/provider/:name/auth_config', async (request, reply) => {
       const config = AppYamlConfig.getInstance();
       const name = request.params.name;
@@ -228,14 +218,9 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       }
 
       try {
-        const result = getProvider(name, config, { removeMetaKeys: false });
-        const authConfig = fetchAuthConfig({
-          providerName: name,
-          providerConfig: result.config
-        });
-        const creds = buildCredentials(authConfig);
-        const headers = encodeAuth(authConfig.type, creds);
-        return safeAuthResponse(authConfig, headers);
+        const factory = new YamlConfigFactory(config);
+        const result = factory.compute(`providers.${name}`, { includeHeaders: true });
+        return safeAuthResponse(result.authConfig, result.headers);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
       }
@@ -251,14 +236,9 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       }
 
       try {
-        const result = getService(name, config, { removeMetaKeys: false });
-        const authConfig = fetchAuthConfig({
-          providerName: name,
-          providerConfig: result.config
-        });
-        const creds = buildCredentials(authConfig);
-        const headers = encodeAuth(authConfig.type, creds);
-        return safeAuthResponse(authConfig, headers);
+        const factory = new YamlConfigFactory(config);
+        const result = factory.compute(`services.${name}`, { includeHeaders: true });
+        return safeAuthResponse(result.authConfig, result.headers);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
       }
@@ -274,41 +254,28 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       }
 
       try {
-        const result = getStorage(name, config, { removeMetaKeys: false });
-        const authConfig = fetchAuthConfig({
-          providerName: name,
-          providerConfig: result.config
-        });
-        const creds = buildCredentials(authConfig);
-        const headers = encodeAuth(authConfig.type, creds);
-        return safeAuthResponse(authConfig, headers);
+        const factory = new YamlConfigFactory(config);
+        const result = factory.compute(`storages.${name}`, { includeHeaders: true });
+        return safeAuthResponse(result.authConfig, result.headers);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
       }
     });
 
+    // ==================== Proxy Config Routes (Updated to use YamlConfigFactory) ====================
+
     fastify.get('/provider/:name/proxy', async (request, reply) => {
       const config = AppYamlConfig.getInstance();
       const name = request.params.name;
 
-      // Check allowlist
       const allowed = config.get('expose_yaml_config_provider') || [];
       if (!allowed.includes(name)) {
         return reply.code(403).send({ error: `Provider '${name}' not in allowlist` });
       }
 
       try {
-        const result = getProvider(name, config, { removeMetaKeys: false });
-        const globalConfig = config.get('global') || {};
-        const loadResult = config.getLoadResult();
-        const appEnv = loadResult?.appEnv || 'dev';
-
-        const proxyResult = resolveProviderProxy(
-          name,
-          result.config,
-          globalConfig,
-          appEnv
-        );
+        const factory = new YamlConfigFactory(config);
+        const proxyResult = factory.computeProxy(`providers.${name}`);
 
         return {
           provider_name: name,
@@ -320,6 +287,126 @@ export default async function appYamlConfigRoutes(fastify, opts) {
             global_proxy: proxyResult.globalProxy,
             app_env: proxyResult.appEnv,
           },
+        };
+      } catch (err) {
+        return reply.code(500).send({ error: err.message });
+      }
+    });
+
+    fastify.get('/provider/:name/runtime_config', async (request, reply) => {
+      const config = AppYamlConfig.getInstance();
+      const name = request.params.name;
+
+      const allowed = config.get('expose_yaml_config_provider') || [];
+      if (!allowed.includes(name)) {
+        return reply.code(403).send({ error: `Provider '${name}' not in allowlist` });
+      }
+
+      try {
+        const factory = new YamlConfigFactory(config);
+        const result = factory.computeAll(`providers.${name}`);
+
+        return {
+          config_type: result.configType,
+          config_name: result.configName,
+          auth: result.authConfig ? safeAuthResponse(result.authConfig, result.headers) : null,
+          auth_error: result.authError ? {
+            message: result.authError.message,
+            code: result.authError.code,
+            details: result.authError.details
+          } : null,
+          proxy: result.proxyConfig ? {
+            proxy_url: result.proxyConfig.proxyUrl,
+            resolution: {
+              source: result.proxyConfig.source,
+              env_var_used: result.proxyConfig.envVarUsed,
+              original_value: result.proxyConfig.originalValue,
+              global_proxy: result.proxyConfig.globalProxy,
+              app_env: result.proxyConfig.appEnv,
+            }
+          } : null,
+          network: result.networkConfig,
+          config: result.config, // Raw merged config
+        };
+      } catch (err) {
+        return reply.code(500).send({ error: err.message });
+      }
+    });
+
+    fastify.get('/service/:name/runtime_config', async (request, reply) => {
+      const config = AppYamlConfig.getInstance();
+      const name = request.params.name;
+
+      const allowed = config.get('expose_yaml_config_service') || [];
+      if (!allowed.includes(name)) {
+        return reply.code(403).send({ error: `Service '${name}' not in allowlist` });
+      }
+
+      try {
+        const factory = new YamlConfigFactory(config);
+        const result = factory.computeAll(`services.${name}`);
+
+        return {
+          config_type: result.configType,
+          config_name: result.configName,
+          auth: result.authConfig ? safeAuthResponse(result.authConfig, result.headers) : null,
+          auth_error: result.authError ? {
+            message: result.authError.message,
+            code: result.authError.code,
+            details: result.authError.details
+          } : null,
+          proxy: result.proxyConfig ? {
+            proxy_url: result.proxyConfig.proxyUrl,
+            resolution: {
+              source: result.proxyConfig.source,
+              env_var_used: result.proxyConfig.envVarUsed,
+              original_value: result.proxyConfig.originalValue,
+              global_proxy: result.proxyConfig.globalProxy,
+              app_env: result.proxyConfig.appEnv,
+            }
+          } : null,
+          network: result.networkConfig,
+          config: result.config,
+        };
+      } catch (err) {
+        return reply.code(500).send({ error: err.message });
+      }
+    });
+
+    fastify.get('/storage/:name/runtime_config', async (request, reply) => {
+      const config = AppYamlConfig.getInstance();
+      const name = request.params.name;
+
+      const allowed = config.get('expose_yaml_config_storage') || [];
+      if (!allowed.includes(name)) {
+        return reply.code(403).send({ error: `Storage '${name}' not in allowlist` });
+      }
+
+      try {
+        const factory = new YamlConfigFactory(config);
+        const result = factory.computeAll(`storages.${name}`);
+
+        return {
+          config_type: result.configType,
+          config_name: result.configName,
+          auth: result.authConfig ? safeAuthResponse(result.authConfig, result.headers) : null,
+          auth_error: result.authError ? {
+            message: result.authError.message,
+            code: result.authError.code,
+            details: result.authError.details
+          } : null,
+          proxy: result.proxyConfig ? {
+            proxy_url: result.proxyConfig.proxyUrl,
+            resolution: {
+              source: result.proxyConfig.source,
+              env_var_used: result.proxyConfig.envVarUsed,
+              original_value: result.proxyConfig.originalValue,
+              global_proxy: result.proxyConfig.globalProxy,
+              app_env: result.proxyConfig.appEnv,
+            }
+          } : null,
+          network: result.networkConfig,
+          config: result.config,
         };
       } catch (err) {
         return reply.code(500).send({ error: err.message });

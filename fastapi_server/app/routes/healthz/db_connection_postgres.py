@@ -7,6 +7,8 @@ from db_connection_postgres import (
     get_db_manager,
     DatabaseConnectionError
 )
+from app_yaml_config import AppYamlConfig
+from yaml_config_factory import YamlConfigFactory, create_runtime_config_response
 
 router = APIRouter(prefix="/healthz/admin/db-connection-postgres", tags=["Admin"])
 
@@ -36,6 +38,23 @@ async def try_connection(ssl_mode: str) -> dict:
         return {
             "ssl_mode": ssl_mode,
             "connected": False,
+            "error": str(e),
+        }
+
+
+async def check_connection(config: PostgresConfig) -> dict:
+    """Check Postgres connection with specific config."""
+    try:
+        manager = DatabaseManager(config)
+        is_healthy = await manager.test_connection()
+        await manager.dispose()
+        return {
+            "success": is_healthy,
+            "error": None,
+        }
+    except Exception as e:
+        return {
+            "success": False,
             "error": str(e),
         }
 
@@ -93,11 +112,7 @@ async def postgres_probe():
 @router.get("/config")
 async def postgres_config():
     """Postgres configuration."""
-    config = PostgresConfig()
-    return {
-        "host": config.host,
-        "port": config.port,
-        "database": config.database,
-        "user": config.user,
-        "ssl_mode": config.ssl_mode,
-    }
+    config_instance = AppYamlConfig.get_instance()
+    factory = YamlConfigFactory(config_instance)
+    result = factory.compute_all("storages.postgres")
+    return create_runtime_config_response(result)

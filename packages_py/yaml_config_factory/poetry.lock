@@ -132,6 +132,23 @@ dev = ["pre-commit", "tox"]
 testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
+name = "proxy-config"
+version = "1.0.0"
+description = "Network configuration and proxy resolution for Python applications"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+pydantic = ">=2.0.0"
+
+[package.source]
+type = "directory"
+url = "../proxy_config"
+
+[[package]]
 name = "pydantic"
 version = "2.12.5"
 description = "Data validation using Python type hints"
@@ -452,4 +469,4 @@ typing-extensions = ">=4.12.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "21b64b9864857846f065008ca73b33bded68bbb57c6db3d698405487ad083994"
+content-hash = "3340ad320bb51688d1104d11a0058a7b2f724f775bbfd1605e5d486ac43547c7"

@@ -1,3 +1,4 @@
+
 /**
  * Postgres healthz routes.
  */
@@ -7,6 +8,8 @@ import {
   getPostgresClient,
   checkConnection,
 } from '@internal/db_connection_postgres';
+import { AppYamlConfig } from '@internal/app-yaml-config';
+import { YamlConfigFactory, createRuntimeConfigResponse } from '@internal/yaml-config-factory';
 
 // SSL modes to try in order of preference
 const SSL_MODES = [
@@ -88,14 +91,10 @@ export default async function postgresRoutes(fastify) {
   });
 
   fastify.get('/healthz/admin/db-connection-postgres/config', async (request, reply) => {
-    const config = new PostgresConfig();
-    return {
-      host: config.host,
-      port: config.port,
-      database: config.database,
-      username: config.username,
-      ssl_mode: config.sslMode,
-      max_connections: config.maxConnections,
-    };
+    const configInstance = AppYamlConfig.getInstance();
+    const factory = new YamlConfigFactory(configInstance);
+    // @ts-ignore - computeAll is typed but we are in JS
+    const result = factory.computeAll('storages.postgres');
+    return createRuntimeConfigResponse(result);
   });
 }

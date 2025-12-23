@@ -304,6 +304,7 @@ storage:
     ssl_check_hostname: null
     encoding: null
     decode_responses: null
+    endpoint_auth_type: "basic"
 
     overwrite_from_env:
       username:
@@ -360,6 +361,7 @@ storage:
     max_overflow: 10    
     pool_timeout: 30    
     pool_recycle: 1800
+    endpoint_auth_type: "basic"
     
     overwrite_from_env:
       pool_recycle: POSTGRES_POOL_RECYCLE
@@ -375,7 +377,7 @@ storage:
       database:
         - POSTGRES_DB_NAME
         - POSTGRES_DB
-      password: null
+      password:
         - POSTGRES_PASS
         - POSTGRES_PASSWORD
       username:

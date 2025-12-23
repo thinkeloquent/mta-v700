@@ -6,12 +6,14 @@ import {
   RedisConfig,
   getRedisClient,
 } from '@internal/db_connection_redis';
+import { AppYamlConfig } from '@internal/app-yaml-config';
+import { YamlConfigFactory, createRuntimeConfigResponse } from '@internal/yaml-config-factory';
 
 export default async function redisRoutes(fastify) {
-  fastify.get('/healthz/admin/db-connection-redis/status', async (request, reply) => {
+
+  async function checkConnection(config) {
     let redis = null;
     try {
-      const config = new RedisConfig();
       redis = getRedisClient(config);
 
       // Wait for ready or error
@@ -52,15 +54,18 @@ export default async function redisRoutes(fastify) {
         error: e.message,
       };
     }
+  }
+
+  fastify.get('/healthz/admin/db-connection-redis/status', async (request, reply) => {
+    const config = new RedisConfig();
+    return checkConnection(config);
   });
 
   fastify.get('/healthz/admin/db-connection-redis/config', async (request, reply) => {
-    const config = new RedisConfig();
-    return {
-      host: config.host,
-      port: config.port,
-      db: config.db,
-      use_tls: config.useTls,
-    };
+    const configInstance = AppYamlConfig.getInstance();
+    const factory = new YamlConfigFactory(configInstance);
+    // @ts-ignore - computeAll is typed but we are in JS
+    const result = factory.computeAll('storages.redis');
+    return createRuntimeConfigResponse(result);
   });
 }

@@ -12,6 +12,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 
+
 // Step 1: Load .env file if exists
 const envPath = path.join(projectRoot, ".env");
 if (fs.existsSync(envPath)) {

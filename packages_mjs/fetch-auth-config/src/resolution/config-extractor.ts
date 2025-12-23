@@ -45,8 +45,8 @@ export function extractAuthSettings(
     providerConfig: Record<string, any>
 ): AuthSettings {
     return {
-        authType: (providerConfig.api_auth_type || 'bearer') as AuthType,
+        authType: (providerConfig.endpoint_auth_type || 'bearer') as AuthType,
         customHeaderName: providerConfig.api_auth_header_name,
-        tokenResolver: (providerConfig.token_resolver || 'static') as TokenResolverType
+        tokenResolver: (providerConfig.endpoint_auth_token_resolver || 'static') as TokenResolverType
     };
 }

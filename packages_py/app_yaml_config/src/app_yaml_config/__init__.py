@@ -32,6 +32,11 @@ from .resolve_proxy import (
     resolve_provider_proxy,
     ProxyResolutionResult
 )
+from .resolve_auth import (
+    resolve_provider_auth,
+    AuthResolutionResult,
+    ResolveAuthOptions
+)
 
 __all__ = [
     "AppYamlConfig",
@@ -58,5 +63,8 @@ __all__ = [
     "StorageConfig",
     "get_storage",
     "resolve_provider_proxy",
-    "ProxyResolutionResult"
+    "ProxyResolutionResult",
+    "resolve_provider_auth",
+    "AuthResolutionResult",
+    "ResolveAuthOptions"
 ]

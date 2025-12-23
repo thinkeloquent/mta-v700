@@ -46,7 +46,7 @@ def extract_env_mappings(provider_config: Dict[str, Any]) -> ProviderEnvMappings
     )
 
 def extract_auth_settings(provider_config: Dict[str, Any]) -> AuthSettings:
-    auth_type_str = provider_config.get("api_auth_type") or "bearer"
+    auth_type_str = provider_config.get("endpoint_auth_type") or "bearer"
     try:
         auth_type = AuthType(auth_type_str)
     except ValueError:
@@ -64,5 +64,5 @@ def extract_auth_settings(provider_config: Dict[str, Any]) -> AuthSettings:
     return AuthSettings(
         auth_type=AuthType(auth_type_str),
         custom_header_name=provider_config.get("api_auth_header_name"),
-        token_resolver=TokenResolverType(provider_config.get("token_resolver") or "static")
+        token_resolver=TokenResolverType(provider_config.get("endpoint_auth_token_resolver") or "static")
     )
