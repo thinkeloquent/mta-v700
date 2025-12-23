@@ -95,9 +95,6 @@ providers:
     endpoint_auth_type: "custom"             # Figma uses custom X-Figma-Token header
     endpoint_auth_token_resolver: "static"
     proxy_url: false  # Disabled - no proxy running
-    env_proxy_url: "FIGMA_PROXY_URL"  # Optional per-provider proxy override
-    env_proxy_url_fallbacks:
-      - "PROXY_URL_AUTH"  # Fallback to authenticated proxy
     headers:
       Accept: "application/json"
     overwrite_from_env:

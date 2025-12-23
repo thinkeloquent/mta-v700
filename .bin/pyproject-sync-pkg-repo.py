@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-python .bin/sync-poetry-local-packages.py
+python .bin/pyproject-sync-pkg-repo.py
 
 Scans packages_py/ and fastapi_apps/ directories and updates pyproject.toml
 to include all local Python packages as editable dependencies.
 
 Usage:
-    python .bin/sync-poetry-local-packages.py [--dry-run]
+    python .bin/pyproject-sync-pkg-repo.py [--dry-run]
 
 Options:
     --dry-run    Show what would be changed without modifying files

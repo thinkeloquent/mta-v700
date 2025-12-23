@@ -236,7 +236,7 @@ deepmerge = "^2.0"
 fetch-auth-config = {path = "../fetch_auth_config", develop = true}
 fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
 python-dotenv = "^1.0.0"
-pyyaml = "^6.0"
+pyyaml = "^6.0.3"
 
 [package.source]
 type = "directory"
@@ -515,7 +515,7 @@ aiohttp = ">=3.8.0"
 elasticsearch = "^8.0.0"
 env-resolve = {path = "../env_resolve"}
 opensearch-py = ">=2.4.0"
-pydantic = ">=2.0.0"
+pydantic = "^2.0.0"
 
 [package.source]
 type = "directory"
@@ -536,7 +536,7 @@ asyncpg = ">=0.27.0"
 deepmerge = "^2.0"
 env-resolve = {path = "../env_resolve"}
 psycopg2-binary = ">=2.9.0"
-pydantic = ">=2.0.0"
+pydantic = "^2.0.0"
 pyyaml = "^6.0.3"
 sqlalchemy = ">=2.0.0"
 
@@ -556,7 +556,7 @@ develop = true
 
 [package.dependencies]
 env-resolve = {path = "../env_resolve"}
-pydantic = ">=2.0.0"
+pydantic = "^2.0.0"
 redis = ">=4.5.0"
 
 [package.source]
@@ -631,7 +631,7 @@ optional = false
 python-versions = "^3.9"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.source]
 type = "directory"
@@ -668,37 +668,6 @@ typing-extensions = ">=4.8.0"
 [package.extras]
 all = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.5)", "httpx (>=0.23.0)", "itsdangerous (>=1.1.0)", "jinja2 (>=3.1.5)", "orjson (>=3.2.1)", "pydantic-extra-types (>=2.0.0)", "pydantic-settings (>=2.0.0)", "python-multipart (>=0.0.18)", "pyyaml (>=5.3.1)", "ujson (>=4.0.1,!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0)", "uvicorn[standard] (>=0.12.0)"]
 standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.5)", "httpx (>=0.23.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
-
-[[package]]
-name = "fastapi-server"
-version = "0.1.0"
-description = "FastAPI Hello World Server"
-optional = false
-python-versions = "^3.11"
-groups = ["main"]
-files = []
-develop = true
-
-[package.dependencies]
-app-yaml-config = "*"
-db-connection-elasticsearch = "*"
-db-connection-postgres = "*"
-db-connection-redis = "*"
-fastapi = ">=0.104.0"
-fetch-auth-config = {path = "/Users/Shared/autoload/mta-v700/packages_py/fetch_auth_config"}
-fetch-auth-encoding = {path = "/Users/Shared/autoload/mta-v700/packages_py/fetch_auth_encoding"}
-greenlet = ">=3.3.0,<4.0.0"
-proxy-dispatcher = {path = "/Users/Shared/autoload/mta-v700/packages_py/proxy_dispatcher"}
-uvicorn = {version = ">=0.24.0", extras = ["standard"]}
-vault-file = "*"
-yaml-config-factory = {path = "/Users/Shared/autoload/mta-v700/packages_py/yaml_config_factory"}
-
-[package.extras]
-dev = ["httpx (>=0.25.0)", "pytest (>=7.4.0)"]
-
-[package.source]
-type = "directory"
-url = "fastapi_server"
 
 [[package]]
 name = "fetch-auth-config"
@@ -879,6 +848,7 @@ description = "Lightweight in-process concurrent programming"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "platform_machine == \"aarch64\" or platform_machine == \"ppc64le\" or platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"win32\" or platform_machine == \"WIN32\""
 files = [
     {file = "greenlet-3.3.0-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:6f8496d434d5cb2dce025773ba5597f71f5410ae499d5dd9533e0653258cdb3d"},
     {file = "greenlet-3.3.0-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b96dc7eef78fd404e022e165ec55327f935b9b52ff355b067eb4a0267fc1cffb"},
@@ -1657,7 +1627,7 @@ files = []
 develop = true
 
 [package.dependencies]
-pydantic = ">=2.0.0"
+pydantic = "^2.0.0"
 
 [package.source]
 type = "directory"
@@ -1671,7 +1641,7 @@ optional = false
 python-versions = "^3.9"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 httpx = ">=0.24.0"
@@ -2462,9 +2432,9 @@ files = []
 develop = true
 
 [package.dependencies]
-pydantic = ">=2.0.0"
-python-dotenv = ">=1.0.0"
-pyyaml = ">=6.0.0"
+pydantic = "^2.0.0"
+python-dotenv = "^1.0.0"
+pyyaml = "^6.0.3"
 
 [package.source]
 type = "directory"
@@ -2679,7 +2649,7 @@ optional = false
 python-versions = "^3.11"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 app-yaml-config = {path = "../app_yaml_config", develop = true}
@@ -2839,4 +2809,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "0bd8014c5fa8d2864a4e29d78e61f9289011bf3ec02dae539265a4a23d6b492d"
+content-hash = "f5102ec6edabf957c1a4e29d540f927e3cf43af8b249fc8bb304f73745d7e43e"

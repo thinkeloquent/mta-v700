@@ -159,9 +159,9 @@ fi
 # STEP 3: Check packages_py/ sync with pyproject.toml
 # =============================================================================
 
-SYNC_SCRIPT="$ROOT_DIR/.bin/sync-poetry-local-packages.py"
+SYNC_SCRIPT="$ROOT_DIR/.bin/pyproject-sync-pkg-repo.py"
 if [[ ! -f "$SYNC_SCRIPT" ]]; then
-    echo -e "${YELLOW}[pre-commit]${NC} Warning: sync-poetry-local-packages.py not found, skipping package sync"
+    echo -e "${YELLOW}[pre-commit]${NC} Warning: .bin/pyproject-sync-pkg-repo.py not found, skipping package sync"
     exit 0
 fi
 
@@ -179,7 +179,7 @@ if git diff --cached --name-only | grep -q "^packages_py/"; then
         echo "==========================================${NC}"
         echo ""
         echo "Run the following command to sync:"
-        echo "  python .bin/sync-poetry-local-packages.py"
+        echo "  python .bin/pyproject-sync-pkg-repo.py"
         echo ""
         echo "Then add the changes:"
         echo "  git add pyproject.toml"

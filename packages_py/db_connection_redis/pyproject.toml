@@ -11,7 +11,7 @@ packages = [{include = "db_connection_redis", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pydantic = ">=2.0.0"
+pydantic = "^2.0.0"
 redis = ">=4.5.0"
 # hiredis = ">=2.0.0" # Optional
 env-resolve = {path = "../env_resolve"}

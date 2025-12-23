@@ -71,7 +71,7 @@ setup:
 	@bash .bin/pyproject-remove-readme-line.sh || true
 	@bash .bin/git-hook-setup.sh || true
 	@python .bin/fix_pytest_test_namespaces.py || true
-	@python .bin/sync-poetry-local-packages.py || true
+	@python .bin/pyproject-sync-pkg-repo.py || true
 	@bash .bin/ts-apply-noImplicitAny.sh || true
 	@echo "Installing poetry dependencies..."
 	rm -rf ./logs && mkdir ./logs

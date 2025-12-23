@@ -181,7 +181,7 @@ update:
 # Sync local packages to pyproject.toml (auto-discover new packages)
 sync:
 	@echo "Syncing local packages..."
-	@$(PYTHON) .bin/sync-poetry-local-packages.py
+	@$(PYTHON) .bin/pyproject-sync-pkg-repo.py
 	@echo "Running poetry lock..."
 	$(POETRY) lock
 	@echo "Done!"
