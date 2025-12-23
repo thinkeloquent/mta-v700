@@ -102,7 +102,11 @@ dev: clean-ports
 	@echo "  Fastify:  http://localhost:$(FASTIFY_PORT)"
 	@echo "  FastAPI:  http://localhost:$(FASTAPI_PORT)"
 	@echo ""
-	@$(MAKE) -j2 dev-fastify dev-fastapi
+	@$(MAKE) dev-fastify & FASTIFY_PID=$$!; \
+	$(MAKE) dev-fastapi & FASTAPI_PID=$$!; \
+	sleep 5; \
+	.bin/healthz-check.sh || true; \
+	wait
 
 dev-no-cache: clean clean-ports
 	@echo "Starting development servers..."
