@@ -22,7 +22,7 @@ def _build_credentials(auth_config: AuthConfig) -> dict:
         creds['header_value'] = auth_config.header_value
     return creds
 
-def _mask_value(value: str, visible_chars: int = 4) -> str:
+def _mask_value(value: str, visible_chars: int = 20) -> str:
     """Mask a secret value for safe display."""
     if not value:
         return None

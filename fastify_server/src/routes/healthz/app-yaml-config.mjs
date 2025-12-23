@@ -16,7 +16,7 @@ function buildCredentials(authConfig) {
   return creds;
 }
 
-function maskValue(value, visibleChars = 4) {
+function maskValue(value, visibleChars = 20) {
   if (!value) return null;
   if (value.length <= visibleChars) return '****';
   return `${value.substring(0, visibleChars)}...`;
