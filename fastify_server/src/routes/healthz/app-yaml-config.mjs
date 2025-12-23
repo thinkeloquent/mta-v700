@@ -1,7 +1,7 @@
 /**
  * AppYamlConfig healthz routes.
  */
-import { AppYamlConfig, getProvider, getService, getStorage } from '@internal/app-yaml-config';
+import { AppYamlConfig, getProvider, getService, getStorage, resolveProviderProxy } from '@internal/app-yaml-config';
 import { fetchAuthConfig } from '@internal/fetch-auth-config';
 import { encodeAuth } from '@internal/fetch-auth-encoding';
 
@@ -282,6 +282,45 @@ export default async function appYamlConfigRoutes(fastify, opts) {
         const creds = buildCredentials(authConfig);
         const headers = encodeAuth(authConfig.type, creds);
         return safeAuthResponse(authConfig, headers);
+      } catch (err) {
+        return reply.code(500).send({ error: err.message });
+      }
+    });
+
+    fastify.get('/provider/:name/proxy', async (request, reply) => {
+      const config = AppYamlConfig.getInstance();
+      const name = request.params.name;
+
+      // Check allowlist
+      const allowed = config.get('expose_yaml_config_provider') || [];
+      if (!allowed.includes(name)) {
+        return reply.code(403).send({ error: `Provider '${name}' not in allowlist` });
+      }
+
+      try {
+        const result = getProvider(name, config, { removeMetaKeys: false });
+        const globalConfig = config.get('global') || {};
+        const loadResult = config.getLoadResult();
+        const appEnv = loadResult?.appEnv || 'dev';
+
+        const proxyResult = resolveProviderProxy(
+          name,
+          result.config,
+          globalConfig,
+          appEnv
+        );
+
+        return {
+          provider_name: name,
+          proxy_url: proxyResult.proxyUrl,
+          resolution: {
+            source: proxyResult.source,
+            env_var_used: proxyResult.envVarUsed,
+            original_value: proxyResult.originalValue,
+            global_proxy: proxyResult.globalProxy,
+            app_env: proxyResult.appEnv,
+          },
+        };
       } catch (err) {
         return reply.code(500).send({ error: err.message });
       }

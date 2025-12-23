@@ -28,6 +28,10 @@ from .get_storage import (
     StorageConfig,
     get_storage
 )
+from .resolve_proxy import (
+    resolve_provider_proxy,
+    ProxyResolutionResult
+)
 
 __all__ = [
     "AppYamlConfig",
@@ -52,5 +56,7 @@ __all__ = [
     "StorageOptions",
     "StorageResult",
     "StorageConfig",
-    "get_storage"
+    "get_storage",
+    "resolve_provider_proxy",
+    "ProxyResolutionResult"
 ]

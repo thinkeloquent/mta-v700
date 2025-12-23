@@ -291,3 +291,44 @@ async def get_storage_auth_config(name: str):
         return _safe_auth_response(auth_config, headers)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/provider/{name}/proxy")
+async def get_provider_proxy(name: str):
+    """Compute the runtime proxy URL for a provider."""
+    config = AppYamlConfig.get_instance()
+
+    # Check allowlist
+    allowed = config.get("expose_yaml_config_provider") or []
+    if name not in allowed:
+        raise HTTPException(status_code=403, detail=f"Provider '{name}' not in allowlist")
+
+    try:
+        from app_yaml_config import ProviderOptions
+        from app_yaml_config.resolve_proxy import resolve_provider_proxy
+
+        result = get_provider(name, config, options=ProviderOptions(remove_meta_keys=False))
+        global_config = config.get("global") or {}
+        load_result = config.get_load_result()
+        app_env = load_result.app_env if load_result else "dev"
+
+        proxy_result = resolve_provider_proxy(
+            name,
+            result.config,
+            global_config,
+            app_env
+        )
+
+        return {
+            "provider_name": name,
+            "proxy_url": proxy_result.proxy_url,
+            "resolution": {
+                "source": proxy_result.source,
+                "env_var_used": proxy_result.env_var_used,
+                "original_value": proxy_result.original_value,
+                "global_proxy": proxy_result.global_proxy,
+                "app_env": proxy_result.app_env,
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -102,6 +102,7 @@ providers:
       Accept: "application/json"
     overwrite_from_env:
       endpoint_api_key: "FIGMA_TOKEN"
+      proxy_url: "FIGMA_PROXY_URL"
 
     
   github:
@@ -186,16 +187,17 @@ providers:
     endpoint_api_key: "SERVICENOW_PASSWORD"
     endpoint_auth_type: "basic"
     endpoint_auth_token_resolver: "static"
-    proxy_url: false  # Disabled - no proxy running
+    proxy_url: null  # Disabled - no proxy running
     overwrite_from_env:
       endpoint_api_key: SERVICENOW_PASSWORD
+      proxy_url: HTTPS_AUTH_PROXY
 
   # Rally (Broadcom)
   rally:
     base_url: "https://rally1.rallydev.com"
     endpoint_api_key: null
     endpoint_auth_type: "header"
-    proxy_url: false  # Disabled - no proxy running
+    proxy_url: 'http://proxy.rally.local:8080'  # Disabled - no proxy running
     overwrite_from_env:
       endpoint_api_key: RALLY_API_KEY
 
