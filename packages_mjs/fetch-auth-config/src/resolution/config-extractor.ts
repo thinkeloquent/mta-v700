@@ -22,13 +22,11 @@ export function extractEnvMappings(
     providerConfig: Record<string, any>
 ): ProviderEnvMappings {
     const overwrites = providerConfig.overwrite_from_env || {};
-    const fallbacks = providerConfig.fallbacks_from_env || {};
 
     function getChain(key: string, primaryKey: string): EnvVarChainConfig {
         return {
             primary: providerConfig[primaryKey],
-            overwrite: overwrites[key],
-            fallbacks: fallbacks[key]
+            overwrite: overwrites[key]
         };
     }
 

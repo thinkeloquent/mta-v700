@@ -22,15 +22,14 @@ export interface InitOptions {
 }
 
 export interface ResolutionSource {
-    /** Source type: yaml, overwrite, fallback */
-    source: 'yaml' | 'overwrite' | 'fallback';
+    /** Source type: yaml, env */
+    source: 'yaml' | 'env';
     /** Environment variable name that provided the value (if applicable) */
     envVar: string | null;
 }
 
 export interface BaseResolveOptions {
     applyEnvOverwrites?: boolean;
-    applyFallbacks?: boolean;
     removeMetaKeys?: boolean;
 }
 

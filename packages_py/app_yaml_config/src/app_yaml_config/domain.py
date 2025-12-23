@@ -21,8 +21,8 @@ class ResolutionSource:
 
 @dataclass
 class BaseResolveOptions:
+    """Base options for configuration resolution."""
     apply_env_overwrites: bool = True
-    apply_fallbacks: bool = True
     remove_meta_keys: bool = True
 
 @dataclass

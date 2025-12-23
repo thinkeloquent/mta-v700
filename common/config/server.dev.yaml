@@ -62,9 +62,7 @@ providers:
     endpoint_auth_type: "bearer"         # bearer, basic, x-api-key, custom
     endpoint_auth_token_resolver: "static"        # static (default), startup, request
     overwrite_from_env:
-      endpoint_api_key: "GEMINI_API_KEY2"
-    fallbacks_from_env:
-      endpoint_api_key: ["GEMINI_API_KEY3", "GEMINI_API_KEY"]
+      endpoint_api_key: ["GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY"]
     proxy_url: false  # Disabled - no proxy running
     client:
       # Override timeout for this provider only

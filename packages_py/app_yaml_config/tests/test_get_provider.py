@@ -39,7 +39,7 @@ def test_overwrite_from_env_array(config_instance):
         result = provider_config.get("test_provider")
         assert result.config["api_key"] == "primary_val"
         assert result.env_overwrites == ["api_key"]
-        assert result.resolution_sources["api_key"].source == "overwrite"
+        assert result.resolution_sources["api_key"].source == "env"
         assert result.resolution_sources["api_key"].env_var == "PRIMARY_KEY"
 
     # Case 2: Only secondary key exists
@@ -53,57 +53,9 @@ def test_overwrite_from_env_array(config_instance):
             result = provider_config.get("test_provider")
             assert result.config["api_key"] == "secondary_val"
             assert result.env_overwrites == ["api_key"]
-            assert result.resolution_sources["api_key"].source == "overwrite"
+            assert result.resolution_sources["api_key"].source == "env"
             assert result.resolution_sources["api_key"].env_var == "SECONDARY_KEY"
 
-def test_fallbacks_from_env(config_instance):
-    """Test fallbacks_from_env logic."""
-    data = {
-        "global": {},
-        "providers": {
-            "test_provider": {
-                "api_key": None,
-                "overwrite_from_env": {
-                    "api_key": "PRIMARY_KEY"
-                },
-                "fallbacks_from_env": {
-                    "api_key": ["FALLBACK_KEY_1", "FALLBACK_KEY_2"]
-                }
-            }
-        }
-    }
-    setup_mock_data(config_instance, data)
-
-    # Case 1: Primary overwrite exists (Fallback ignored)
-    with patch.dict(os.environ, {"PRIMARY_KEY": "primary_val", "FALLBACK_KEY_1": "fallback_val"}):
-        provider_config = ProviderConfig(config_instance)
-        result = provider_config.get("test_provider")
-        assert result.config["api_key"] == "primary_val"
-        assert result.env_overwrites == ["api_key"]
-        assert result.resolution_sources["api_key"].source == "overwrite"
-
-    # Case 2: Primary missing, Fallback 1 exists
-    with patch.dict(os.environ, {"FALLBACK_KEY_1": "fallback_val_1"}):
-        with patch.dict(os.environ):
-            if "PRIMARY_KEY" in os.environ: del os.environ["PRIMARY_KEY"]
-            
-            provider_config = ProviderConfig(config_instance)
-            result = provider_config.get("test_provider")
-            assert result.config["api_key"] == "fallback_val_1"
-            assert result.env_overwrites == ["api_key"]
-            assert result.resolution_sources["api_key"].source == "fallback"
-
-    # Case 3: Primary missing, Fallback 1 missing, Fallback 2 exists
-    with patch.dict(os.environ, {"FALLBACK_KEY_2": "fallback_val_2"}):
-        with patch.dict(os.environ):
-            if "PRIMARY_KEY" in os.environ: del os.environ["PRIMARY_KEY"]
-            if "FALLBACK_KEY_1" in os.environ: del os.environ["FALLBACK_KEY_1"]
-
-            provider_config = ProviderConfig(config_instance)
-            result = provider_config.get("test_provider")
-            assert result.config["api_key"] == "fallback_val_2"
-            assert result.env_overwrites == ["api_key"]
-            assert result.resolution_sources["api_key"].source == "fallback"
 
 def test_mixed_config(config_instance):
     """Test mixed configuration with existing values."""

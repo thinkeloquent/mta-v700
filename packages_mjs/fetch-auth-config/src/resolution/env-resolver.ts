@@ -3,8 +3,6 @@ export interface EnvVarChainConfig {
     primary?: string;
     /** Overwrite env var (from overwrite_from_env) */
     overwrite?: string | string[];
-    /** Fallback env vars (from fallbacks_from_env) */
-    fallbacks?: string[];
 }
 
 export interface EnvVarResolveResult {
@@ -45,15 +43,6 @@ export function resolveEnvVarChain(
         tried.push(config.primary);
         const result = resolveEnvVar(config.primary);
         if (result.value !== null) return { ...result, tried };
-    }
-
-    // 3. Try fallbacks
-    if (config.fallbacks) {
-        for (const envVar of config.fallbacks) {
-            tried.push(envVar);
-            const result = resolveEnvVar(envVar);
-            if (result.value !== null) return { ...result, tried };
-        }
     }
 
     return { value: null, source: null, tried };

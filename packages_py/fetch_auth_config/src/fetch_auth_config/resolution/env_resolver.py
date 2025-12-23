@@ -13,8 +13,7 @@ def resolve_env_var(env_var_name: str) -> Optional[str]:
 
 def resolve_env_var_chain(
     primary: Optional[str] = None,
-    overwrite: Optional[Union[str, List[str]]] = None,
-    fallbacks: Optional[List[str]] = None
+    overwrite: Optional[Union[str, List[str]]] = None
 ) -> EnvVarResolveResult:
     """
     Try multiple env vars in order (overwrite -> primary -> fallbacks).
@@ -37,13 +36,5 @@ def resolve_env_var_chain(
         val = resolve_env_var(primary)
         if val is not None:
             return EnvVarResolveResult(value=val, source=primary, tried=tried)
-
-    # 3. Try fallbacks
-    if fallbacks:
-        for env_var in fallbacks:
-            tried.append(env_var)
-            val = resolve_env_var(env_var)
-            if val is not None:
-                return EnvVarResolveResult(value=val, source=env_var, tried=tried)
 
     return EnvVarResolveResult(value=None, source=None, tried=tried)

@@ -13,8 +13,8 @@ export class ProviderConfig extends ConfigResolver<ProviderOptions, ProviderResu
 
     protected get metaKeyPattern(): MetaKeyPattern {
         return {
-            type: 'grouped',
-            keys: { overwrite: 'overwrite_from_env', fallbacks: 'fallbacks_from_env' }
+            type: 'single',
+            key: 'overwrite_from_env'
         };
     }
 
@@ -27,7 +27,6 @@ export class ProviderConfig extends ConfigResolver<ProviderOptions, ProviderResu
         return {
             mergeGlobal: true,
             applyEnvOverwrites: true,
-            applyFallbacks: true,
             removeMetaKeys: true,
             ...options
         };
@@ -49,10 +48,6 @@ export class ProviderConfig extends ConfigResolver<ProviderOptions, ProviderResu
         if (options.overwriteFromEnv) {
             console.debug(`[ProviderConfig] Injecting runtime overwriteFromEnv for provider:`, options.overwriteFromEnv);
             config['overwrite_from_env'] = options.overwriteFromEnv;
-        }
-        if (options.fallbacksFromEnv) {
-            console.debug(`[ProviderConfig] Injecting runtime fallbacksFromEnv for provider:`, options.fallbacksFromEnv);
-            config['fallbacks_from_env'] = options.fallbacksFromEnv;
         }
 
         return config;

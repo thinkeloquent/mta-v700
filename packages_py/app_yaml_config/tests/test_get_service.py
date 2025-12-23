@@ -98,7 +98,7 @@ def test_single_string_overwrite(config_instance):
         result = get_service("test_service")
         assert result.config["key"] == "env_value"
         assert result.env_overwrites == ["key"]
-        assert result.resolution_sources["key"].source == "overwrite"
+        assert result.resolution_sources["key"].source == "env"
         assert result.resolution_sources["key"].env_var == "TEST_VAR"
 
     # Case 2: Not found
@@ -136,32 +136,6 @@ def test_array_overwrite(config_instance):
             assert result.config["key"] == "val2"
             assert result.resolution_sources["key"].env_var == "VAR2"
 
-# TC-013-020: Fallback used
-def test_fallback_usage(config_instance):
-    data = {
-        "services": {
-            "test_service": {
-                "key": None,
-                "overwrite_from_env": {
-                    "key": "PRIMARY"
-                },
-                "fallbacks_from_env": {
-                    "key": ["FB1", "FB2"]
-                }
-            }
-        }
-    }
-    setup_mock_data(config_instance, data)
-    
-    # Primary not set, FB1 set
-    with patch.dict(os.environ, {"FB1": "fb_val"}):
-        with patch.dict(os.environ):
-            if "PRIMARY" in os.environ: del os.environ["PRIMARY"]
-            
-            result = get_service("test_service")
-            assert result.config["key"] == "fb_val"
-            assert result.resolution_sources["key"].source == "fallback"
-            assert result.resolution_sources["key"].env_var == "FB1"
 
 # TC-013-042: Meta keys removed
 def test_meta_keys_removed(config_instance):
@@ -178,4 +152,3 @@ def test_meta_keys_removed(config_instance):
     
     result = get_service("test_service")
     assert "overwrite_from_env" not in result.config
-    assert "fallbacks_from_env" not in result.config

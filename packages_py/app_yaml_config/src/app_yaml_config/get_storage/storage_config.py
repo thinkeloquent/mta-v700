@@ -22,8 +22,8 @@ class StorageConfig(ConfigResolver[StorageOptions, StorageResult]):
     @property
     def meta_key_pattern(self) -> Dict[str, Any]:
         return {
-            'type': 'grouped',
-            'keys': {'overwrite': 'overwrite_from_env', 'fallbacks': 'fallbacks_from_env'}
+            'type': 'single',
+            'key': 'overwrite_from_env'
         }
 
     @property

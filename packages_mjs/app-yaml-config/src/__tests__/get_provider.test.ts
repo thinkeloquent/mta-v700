@@ -123,7 +123,7 @@ describe('getProvider', () => {
 
             expect(result.config.api_key).toBe('primary_val');
             expect(result.envOverwrites).toContain('api_key');
-            expect(result.resolutionSources.api_key).toEqual({ source: 'overwrite', envVar: 'PRIMARY_KEY' });
+            expect(result.resolutionSources.api_key).toEqual({ source: 'env', envVar: 'PRIMARY_KEY' });
         });
 
         it('should resolve using second available env var if first missing', () => {
@@ -135,19 +135,8 @@ describe('getProvider', () => {
 
             expect(result.config.api_key).toBe('secondary_val');
             expect(result.envOverwrites).toContain('api_key');
-            expect(result.resolutionSources.api_key).toEqual({ source: 'overwrite', envVar: 'SECONDARY_KEY' });
+            expect(result.resolutionSources.api_key).toEqual({ source: 'env', envVar: 'SECONDARY_KEY' });
         });
 
-        it('should use fallback if overwrite fails', () => {
-            // PRIMARY_KEY missing
-            process.env.FALLBACK_KEY_1 = 'fallback_val';
-
-            const pc = new ProviderConfig(mockConfigInstance);
-            const result = pc.get('fallback_provider');
-
-            expect(result.config.api_key).toBe('fallback_val');
-            expect(result.envOverwrites).toContain('api_key');
-            expect(result.resolutionSources.api_key).toEqual({ source: 'fallback', envVar: 'FALLBACK_KEY_1' });
-        });
     });
 });

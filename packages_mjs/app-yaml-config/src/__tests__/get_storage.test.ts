@@ -21,20 +21,25 @@ describe('getStorage', () => {
                 },
                 redis_env: {
                     host: null,
-                    env_host_key: 'REDIS_HOST',
                     port: null,
-                    env_port_key: 'REDIS_PORT'
+                    overwrite_from_env: {
+                        host: 'REDIS_HOST',
+                        port: 'REDIS_PORT'
+                    }
                 },
                 redis_fallback: {
                     host: null,
-                    env_host_key: 'PRIMARY_HOST',
-                    env_host_key_fallbacks: ['FALLBACK_HOST_1', 'FALLBACK_HOST_2']
+                    overwrite_from_env: {
+                        host: 'PRIMARY_HOST'
+                    }
                 },
                 mixed: {
                     host: 'explicit_host', // Should not be overwritten
-                    env_host_key: 'REDIS_HOST',
                     port: null,
-                    env_port_key: 'REDIS_PORT'
+                    overwrite_from_env: {
+                        host: 'REDIS_HOST',
+                        port: 'REDIS_PORT'
+                    }
                 }
             }
         };
@@ -91,23 +96,16 @@ describe('getStorage', () => {
         expect(result.config.port).toBe('6380');
         expect(result.envOverwrites).toContain('host');
         expect(result.envOverwrites).toContain('port');
-        expect(result.resolutionSources.host).toEqual({ source: 'overwrite', envVar: 'REDIS_HOST' });
+        expect(result.resolutionSources.host).toEqual({ source: 'env', envVar: 'REDIS_HOST' });
     });
 
-    it('should overwrite from fallback env key', () => {
-        process.env.FALLBACK_HOST_2 = 'fallback_val';
-        const result = getStorage('redis_fallback');
-        expect(result.config.host).toBe('fallback_val');
-        expect(result.resolutionSources.host.source).toBe('fallback');
-        expect(result.resolutionSources.host.envVar).toBe('FALLBACK_HOST_2');
-    });
 
-    it('should prefer primary over fallback', () => {
+    it('should prefer primary', () => {
         process.env.PRIMARY_HOST = 'primary_val';
         process.env.FALLBACK_HOST_1 = 'fallback_val';
         const result = getStorage('redis_fallback');
         expect(result.config.host).toBe('primary_val');
-        expect(result.resolutionSources.host.source).toBe('overwrite');
+        expect(result.resolutionSources.host.source).toBe('env');
     });
 
     it('should NOT overwrite non-null values', () => {
@@ -120,11 +118,14 @@ describe('getStorage', () => {
 
     it('should remove meta keys by default', () => {
         const result = getStorage('redis_env');
-        expect(result.config.env_host_key).toBeUndefined();
+        expect(result.config.overwrite_from_env).toBeUndefined();
     });
 
     it('should keep meta keys if requested', () => {
         const result = getStorage('redis_env', undefined, { removeMetaKeys: false });
-        expect(result.config.env_host_key).toBe('REDIS_HOST');
+        expect(result.config.overwrite_from_env).toEqual({
+            host: 'REDIS_HOST',
+            port: 'REDIS_PORT'
+        });
     });
 });

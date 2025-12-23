@@ -13,6 +13,8 @@
     "fastify": "^4.24.0",
     "@internal/vault-file": "workspace:*",
     "@internal/app-yaml-config": "workspace:*",
+    "@internal/yaml-config-factory": "workspace:*",
+    "@internal/proxy-dispatcher": "workspace:*",
     "@internal/db-connection-elasticsearch": "workspace:*",
     "@internal/db_connection_postgres": "workspace:*",
     "@internal/db_connection_redis": "workspace:*"

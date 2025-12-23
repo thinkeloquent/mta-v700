@@ -13,8 +13,8 @@ export class StorageConfig extends ConfigResolver<StorageOptions, StorageResult>
 
     protected get metaKeyPattern(): MetaKeyPattern {
         return {
-            type: 'grouped',
-            keys: { overwrite: 'overwrite_from_env', fallbacks: 'fallbacks_from_env' }
+            type: 'single',
+            key: 'overwrite_from_env'
         };
     }
 
@@ -25,7 +25,6 @@ export class StorageConfig extends ConfigResolver<StorageOptions, StorageResult>
     protected getDefaultOptions(options?: StorageOptions): StorageOptions {
         return {
             applyEnvOverwrites: true,
-            applyFallbacks: true,
             removeMetaKeys: true,
             ...options
         };

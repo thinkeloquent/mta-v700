@@ -121,10 +121,9 @@ class ConfigResolver(ABC, Generic[TOptions, TResult]):
         pattern = self.meta_key_pattern
         result: Dict[str, Dict[str, Any]] = {}
 
-        if pattern.get('type') == 'grouped':
-            # Pattern: overwrite_from_env / fallbacks_from_env
-            overwrites = config.get(pattern['keys']['overwrite'], {})
-            fallbacks = config.get(pattern['keys']['fallbacks'], {})
+        if pattern.get('type') == 'single':
+            key = pattern['key']
+            overwrites = config.get(key, {})
 
             if isinstance(overwrites, dict):
                 for prop, env_spec in overwrites.items():
@@ -132,11 +131,15 @@ class ConfigResolver(ABC, Generic[TOptions, TResult]):
                         result[prop] = {}
                     result[prop]['primary'] = env_spec
 
-            if isinstance(fallbacks, dict):
-                for prop, env_spec in fallbacks.items():
+        elif pattern.get('type') == 'grouped':
+            # Pattern: overwrite_from_env / fallbacks_from_env
+            overwrites = config.get(pattern['keys']['overwrite'], {})
+            
+            if isinstance(overwrites, dict):
+                for prop, env_spec in overwrites.items():
                     if prop not in result:
                         result[prop] = {}
-                    result[prop]['fallbacks'] = env_spec
+                    result[prop]['primary'] = env_spec
 
         elif pattern.get('type') == 'per-property':
             # Pattern: env_{prop}_key / env_{prop}_key_fallbacks
@@ -184,16 +187,8 @@ class ConfigResolver(ABC, Generic[TOptions, TResult]):
                 if value is not None:
                     result[prop] = value
                     env_overwrites.append(prop)
-                    resolution_sources[prop] = ResolutionSource(source='overwrite', env_var=matched_var)
+                    resolution_sources[prop] = ResolutionSource(source='env', env_var=matched_var)
                     continue
-
-            # Step 2: Try fallbacks
-            if options.apply_fallbacks and 'fallbacks' in meta:
-                value, matched_var = self._try_env_vars(meta['fallbacks'])
-                if value is not None:
-                    result[prop] = value
-                    env_overwrites.append(prop)
-                    resolution_sources[prop] = ResolutionSource(source='fallback', env_var=matched_var)
 
         return env_overwrites, resolution_sources
 
@@ -201,7 +196,9 @@ class ConfigResolver(ABC, Generic[TOptions, TResult]):
         """Remove metadata keys from the configuration result."""
         pattern = self.meta_key_pattern
 
-        if pattern.get('type') == 'grouped':
+        if pattern.get('type') == 'single':
+            result.pop(pattern['key'], None)
+        elif pattern.get('type') == 'grouped':
             result.pop(pattern['keys']['overwrite'], None)
             result.pop(pattern['keys']['fallbacks'], None)
         elif pattern.get('type') == 'per-property':

@@ -18,20 +18,25 @@ def mock_config():
             },
             "redis_env": {
                 "host": None,
-                "env_host_key": "REDIS_HOST",
                 "port": None,
-                "env_port_key": "REDIS_PORT"
+                "overwrite_from_env": {
+                    "host": "REDIS_HOST",
+                    "port": "REDIS_PORT"
+                }
             },
             "redis_fallback": {
                 "host": None,
-                "env_host_key": "PRIMARY_HOST",
-                "env_host_key_fallbacks": ["FALLBACK_HOST_1", "FALLBACK_HOST_2"]
+                "overwrite_from_env": {
+                    "host": "PRIMARY_HOST"
+                }
             },
             "mixed": {
                 "host": "explicit_host", # Should not be overwritten
-                "env_host_key": "REDIS_HOST",
                 "port": None,
-                "env_port_key": "REDIS_PORT"
+                "overwrite_from_env": {
+                    "host": "REDIS_HOST",
+                    "port": "REDIS_PORT"
+                }
             }
         }
         yield instance
@@ -68,23 +73,16 @@ class TestStorageConfig:
             assert storage.config["port"] == "6380"
             assert "host" in storage.env_overwrites
             assert "port" in storage.env_overwrites
-            assert storage.resolution_sources["host"].source == "overwrite"
+            assert storage.resolution_sources["host"].source == "env"
             assert storage.resolution_sources["host"].env_var == "REDIS_HOST"
 
-    def test_env_overwrite_fallback(self, mock_config):
-        # Primary missing, first fallback missing, second fallback present
-        with patch.dict(os.environ, {"FALLBACK_HOST_2": "fallback_val"}):
-            storage = get_storage("redis_fallback")
-            assert storage.config["host"] == "fallback_val"
-            assert storage.resolution_sources["host"].source == "fallback"
-            assert storage.resolution_sources["host"].env_var == "FALLBACK_HOST_2"
 
     def test_env_overwrite_primary_wins(self, mock_config):
         # Using primary even if fallback exists
         with patch.dict(os.environ, {"PRIMARY_HOST": "primary_val", "FALLBACK_HOST_1": "fallback_val"}):
             storage = get_storage("redis_fallback")
             assert storage.config["host"] == "primary_val"
-            assert storage.resolution_sources["host"].source == "overwrite"
+            assert storage.resolution_sources["host"].source == "env"
 
     def test_non_null_preserved(self, mock_config):
         # explicit value should NOT be overwritten
@@ -96,19 +94,10 @@ class TestStorageConfig:
     def test_remove_meta_keys(self, mock_config):
         # Default behavior: remove meta keys
         storage = get_storage("redis_env")
-        assert "env_host_key" not in storage.config
-        assert "env_port_key" not in storage.config
+        assert "overwrite_from_env" not in storage.config
 
         # Option: keep meta keys
         storage_keep = get_storage("redis_env", options=StorageOptions(remove_meta_keys=False))
-        assert "env_host_key" in storage_keep.config
-        assert storage_keep.config["env_host_key"] == "REDIS_HOST"
+        assert "overwrite_from_env" in storage_keep.config
+        assert storage_keep.config["overwrite_from_env"]["host"] == "REDIS_HOST"
 
-    def test_regex_pattern_matching(self, mock_config):
-        # Test private method directly for robustness
-        sc = StorageConfig()
-        assert sc._extract_base_property("env_host_key") == "host"
-        assert sc._extract_base_property("env_host_key_fallbacks") == "host"
-        assert sc._extract_base_property("env_my_custom_prop_key") == "my_custom_prop"
-        assert sc._extract_base_property("host") is None
-        assert sc._extract_base_property("env_host") is None

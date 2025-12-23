@@ -95,7 +95,7 @@ describe('getService', () => {
         const result = getService('test_service');
         expect(result.config.key).toBe('env_value');
         expect(result.envOverwrites).toContain('key');
-        expect(result.resolutionSources.key).toEqual({ source: 'overwrite', envVar: 'TEST_VAR' });
+        expect(result.resolutionSources.key).toEqual({ source: 'env', envVar: 'TEST_VAR' });
     });
 
     it('should overwrite with array env var (first found)', () => {
@@ -113,17 +113,9 @@ describe('getService', () => {
         expect(result.resolutionSources.key.envVar).toBe('VAR2');
     });
 
-    it('should use fallback if overwrite missing', () => {
-        process.env.FB1 = 'fb_val';
-        const result = getService('fallback_service');
-        expect(result.config.key).toBe('fb_val');
-        expect(result.resolutionSources.key.source).toBe('fallback');
-        expect(result.resolutionSources.key.envVar).toBe('FB1');
-    });
 
     it('should remove meta keys from result', () => {
         const result = getService('meta_service');
         expect(result.config.overwrite_from_env).toBeUndefined();
-        expect(result.config.fallbacks_from_env).toBeUndefined();
     });
 });

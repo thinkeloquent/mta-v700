@@ -14,7 +14,7 @@ class ProviderOptions(BaseResolveOptions):
     """Options for retrieving provider configuration."""
     merge_global: bool = True
     overwrite_from_env: Optional[Dict[str, Any]] = None
-    fallbacks_from_env: Optional[Dict[str, Any]] = None
+    overwrite_from_env: Optional[Dict[str, Any]] = None
 
 @dataclass
 class ProviderResult(BaseResult):
@@ -31,8 +31,8 @@ class ProviderConfig(ConfigResolver[ProviderOptions, ProviderResult]):
     @property
     def meta_key_pattern(self) -> Dict[str, Any]:
         return {
-            'type': 'grouped', 
-            'keys': {'overwrite': 'overwrite_from_env', 'fallbacks': 'fallbacks_from_env'}
+            'type': 'single', 
+            'key': 'overwrite_from_env'
         }
 
     @property
@@ -104,10 +104,6 @@ class ProviderConfig(ConfigResolver[ProviderOptions, ProviderResult]):
         if options.overwrite_from_env is not None:
             logger.debug(f"Injecting runtime overwrite_from_env for provider: {options.overwrite_from_env}")
             config['overwrite_from_env'] = options.overwrite_from_env
-            
-        if options.fallbacks_from_env is not None:
-            logger.debug(f"Injecting runtime fallbacks_from_env for provider: {options.fallbacks_from_env}")
-            config['fallbacks_from_env'] = options.fallbacks_from_env
             
         return config
 

@@ -7,7 +7,6 @@ from ..types.token_resolver import TokenResolverType
 class EnvVarChainConfig:
     primary: Optional[str] = None
     overwrite: Optional[List[str]] = None
-    fallbacks: Optional[List[str]] = None
 
 @dataclass
 class ProviderEnvMappings:
@@ -28,15 +27,12 @@ class AuthSettings:
 
 def extract_env_mappings(provider_config: Dict[str, Any]) -> ProviderEnvMappings:
     overwrites = provider_config.get("overwrite_from_env") or {}
-    fallbacks = provider_config.get("fallbacks_from_env") or {}
     
     def _get_chain(key: str, primary_key: str) -> EnvVarChainConfig:
         ov = overwrites.get(key)
-        fb = fallbacks.get(key)
         return EnvVarChainConfig(
             primary=provider_config.get(primary_key),
-            overwrite=[ov] if isinstance(ov, str) else ov,
-            fallbacks=[fb] if isinstance(fb, str) else fb
+            overwrite=[ov] if isinstance(ov, str) else ov
         )
 
     return ProviderEnvMappings(

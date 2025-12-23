@@ -13,8 +13,7 @@ def resolve_custom_auth(
     # Resolve value (token/value)
     token_res = resolve_env_var_chain(
         primary=env_mappings.api_key.primary,
-        overwrite=env_mappings.api_key.overwrite,
-        fallbacks=env_mappings.api_key.fallbacks
+        overwrite=env_mappings.api_key.overwrite
     )
     
     if not token_res.value:

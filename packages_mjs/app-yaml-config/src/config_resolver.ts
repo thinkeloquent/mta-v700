@@ -5,6 +5,7 @@ import { BaseResolveOptions, BaseResult, ResolutionSource } from './domain';
 // Type describing the meta key pattern
 export type MetaKeyPattern =
     | { type: 'grouped'; keys: { overwrite: string; fallbacks: string } }
+    | { type: 'single'; key: string }
     | { type: 'per-property'; regex: RegExp };
 
 export abstract class ConfigResolver<TOptions extends BaseResolveOptions, TResult extends BaseResult> {
@@ -99,7 +100,13 @@ export abstract class ConfigResolver<TOptions extends BaseResolveOptions, TResul
         const pattern = this.metaKeyPattern;
         const result: Record<string, { primary?: any; fallbacks?: any }> = {};
 
-        if (pattern.type === 'grouped') {
+        if (pattern.type === 'single') {
+            const overwrites = config[pattern.key] || {};
+            for (const [prop, envSpec] of Object.entries(overwrites)) {
+                if (!result[prop]) result[prop] = {};
+                result[prop].primary = envSpec;
+            }
+        } else if (pattern.type === 'grouped') {
             const overwrites = config[pattern.keys.overwrite] || {};
             const fallbacks = config[pattern.keys.fallbacks] || {};
 
@@ -145,7 +152,6 @@ export abstract class ConfigResolver<TOptions extends BaseResolveOptions, TResul
         const resolutionSources: Record<string, ResolutionSource> = {};
 
         const applyOverwrites = options.applyEnvOverwrites !== false;
-        const applyFallbacks = options.applyFallbacks !== false;
 
         for (const [prop, meta] of Object.entries(envMeta)) {
             // Only process if property is explicitly null/undefined/empty? 
@@ -160,18 +166,8 @@ export abstract class ConfigResolver<TOptions extends BaseResolveOptions, TResul
                 if (value !== null) {
                     result[prop] = value;
                     envOverwrites.push(prop);
-                    resolutionSources[prop] = { source: 'overwrite', envVar };
+                    resolutionSources[prop] = { source: 'env', envVar };
                     continue;
-                }
-            }
-
-            // Step 2: Try fallbacks
-            if (applyFallbacks && meta.fallbacks) {
-                const { value, envVar } = this.tryEnvVars(meta.fallbacks);
-                if (value !== null) {
-                    result[prop] = value;
-                    envOverwrites.push(prop);
-                    resolutionSources[prop] = { source: 'fallback', envVar };
                 }
             }
         }
@@ -182,7 +178,9 @@ export abstract class ConfigResolver<TOptions extends BaseResolveOptions, TResul
     protected removeMetaKeys(result: Record<string, any>): void {
         const pattern = this.metaKeyPattern;
 
-        if (pattern.type === 'grouped') {
+        if (pattern.type === 'single') {
+            delete result[pattern.key];
+        } else if (pattern.type === 'grouped') {
             delete result[pattern.keys.overwrite];
             delete result[pattern.keys.fallbacks];
         } else if (pattern.type === 'per-property') {
