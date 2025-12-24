@@ -28,7 +28,8 @@ export async function fetchAuthConfig(
         let tokenValue: string;
 
         if (authSettings.tokenResolver === TokenResolverType.STARTUP) {
-            tokenValue = await ComputeRegistry.resolveStartup(providerName);
+            const server = request ? request.server : null;
+            tokenValue = await ComputeRegistry.resolveStartup(providerName, server);
         } else {
             if (!request) {
                 throw new Error(`Request context required for provider '${providerName}' with REQUEST token resolver`);

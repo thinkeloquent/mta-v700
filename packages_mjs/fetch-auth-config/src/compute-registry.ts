@@ -1,12 +1,11 @@
 import { ComputeFunctionNotFoundError, ComputeFunctionError } from './errors.js';
 
-export type StartupComputeFn = () => string | Promise<string>;
+export type StartupComputeFn = (server: any) => string | Promise<string>;
 export type RequestComputeFn = (request: any) => string | Promise<string>;
 
 export class ComputeRegistry {
     private static startupResolvers: Map<string, StartupComputeFn> = new Map();
     private static requestResolvers: Map<string, RequestComputeFn> = new Map();
-    private static cache: Map<string, string> = new Map();
 
     static registerStartup(providerName: string, fn: StartupComputeFn) {
         this.startupResolvers.set(providerName, fn);
@@ -16,19 +15,14 @@ export class ComputeRegistry {
         this.requestResolvers.set(providerName, fn);
     }
 
-    static async resolveStartup(providerName: string): Promise<string> {
-        if (this.cache.has(providerName)) {
-            return this.cache.get(providerName)!;
-        }
-
+    static async resolveStartup(providerName: string, server: any): Promise<string> {
         const fn = this.startupResolvers.get(providerName);
         if (!fn) {
             throw new ComputeFunctionNotFoundError(providerName, 'startup');
         }
 
         try {
-            const result = await fn();
-            this.cache.set(providerName, result);
+            const result = await fn(server);
             return result;
         } catch (error: any) {
             if (error instanceof ComputeFunctionNotFoundError) throw error;

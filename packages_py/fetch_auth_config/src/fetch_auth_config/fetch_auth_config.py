@@ -34,7 +34,8 @@ async def fetch_auth_config(
         token_value: Optional[str] = None
         
         if auth_settings.token_resolver == TokenResolverType.STARTUP:
-            token_value = await ComputeRegistry.resolve_startup(provider_name)
+            app = request.app if request else None
+            token_value = await ComputeRegistry.resolve_startup(provider_name, app)
             
         elif auth_settings.token_resolver == TokenResolverType.REQUEST:
             if request is None:

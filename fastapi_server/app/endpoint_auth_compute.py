@@ -20,17 +20,17 @@ Usage:
 """
 
 from fetch_auth_config import register_startup, register_request
-from fastapi import Request
+from fastapi import Request, FastAPI
 import os
 
 @register_startup("figma")
-async def resolve_figma_startup() -> str:
+async def resolve_figma_startup(app: FastAPI) -> str:
+    # Can access app.state or other properties if needed
     # Compute token at startup from ENV variable
     return os.getenv("FIGMA_TOKEN", "")
 
 @register_request("gemini_openai")
 async def resolve_gemini_openai_request(request: Request) -> str:
     # Compute token per request (e.g. extract from header)
-    return os.getenv("GEMINI_API_KEY", "")
     token = request.headers.get("GEMINI_API_KEY")
     return token if token else "dynamic-token-fallback"

@@ -21,7 +21,8 @@
 import { ComputeRegistry } from "@internal/fetch-auth-config";
 
 // Startup Compute for Figma (Env var)
-ComputeRegistry.registerStartup("figma", async () => {
+ComputeRegistry.registerStartup("figma", async (server) => {
+  // Can use server instance here if needed, e.g. server.log.info(...)
   return process.env.FIGMA_TOKEN || "";
 });
 

@@ -3,13 +3,12 @@ from typing import Dict, Callable, Any, Optional, Union, Awaitable
 from .errors import ComputeFunctionNotFoundError, ComputeFunctionError
 
 # Types
-StartupComputeFn = Callable[[], Union[str, Awaitable[str]]]
+StartupComputeFn = Callable[[Any], Union[str, Awaitable[str]]]
 RequestComputeFn = Callable[[Any], Union[str, Awaitable[str]]]
 
 class ComputeRegistry:
     _startup_resolvers: Dict[str, StartupComputeFn] = {}
     _request_resolvers: Dict[str, RequestComputeFn] = {}
-    _cache: Dict[str, str] = {}
 
     @classmethod
     def register_startup(cls, provider_name: str):
@@ -26,19 +25,15 @@ class ComputeRegistry:
         return decorator
 
     @classmethod
-    async def resolve_startup(cls, provider_name: str) -> str:
-        if provider_name in cls._cache:
-            return cls._cache[provider_name]
-        
+    async def resolve_startup(cls, provider_name: str, app: Any) -> str:
         fn = cls._startup_resolvers.get(provider_name)
         if not fn:
             raise ComputeFunctionNotFoundError(provider_name, "startup")
         
         try:
-            result = fn()
+            result = fn(app)
             if asyncio.iscoroutine(result):
                 result = await result
-            cls._cache[provider_name] = str(result)
             return str(result)
         except Exception as e:
             if isinstance(e, ComputeFunctionNotFoundError):
