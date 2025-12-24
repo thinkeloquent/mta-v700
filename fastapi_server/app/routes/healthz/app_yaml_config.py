@@ -1,5 +1,6 @@
 """AppYamlConfig healthz routes."""
 
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from app_yaml_config import AppYamlConfig, get_provider, get_service, get_storage
 from fetch_auth_config import AuthConfig
@@ -129,6 +130,80 @@ async def get_compute(name: str):
 
 
 # ==================== Providers ====================
+
+@router.get("/provider/{name}/fetch/status")
+async def get_provider_fetch_status(
+    name: str,
+    request: Request,
+    timeout: float = 10.0,
+    endpoint: Optional[str] = None,
+):
+    """
+    Test fetch connectivity to provider using runtime config.
+
+    Returns connection status, latency, and configuration details.
+    """
+    from fetch_client.health import FetchStatusChecker
+    from typing import Optional
+
+    config = AppYamlConfig.get_instance()
+
+    # Check allowlist
+    allowed = config.get("expose_yaml_config_provider") or []
+    if name not in allowed:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Provider '{name}' not in allowlist"
+        )
+
+    try:
+        # Get runtime config (reuse existing logic)
+        factory = YamlConfigFactory(config)
+        runtime_config = await factory.compute_all(
+            f"providers.{name}",
+            request=request
+        )
+
+        # Check for auth errors
+        if runtime_config.auth_error:
+            return {
+                "provider_name": name,
+                "status": "config_error",
+                "error": {
+                    "type": "AuthConfigError",
+                    "message": str(runtime_config.auth_error),
+                },
+                "config_used": {
+                    "base_url": runtime_config.config.get("base_url"),
+                }
+            }
+
+        # Execute health check
+        checker = FetchStatusChecker(
+            provider_name=name,
+            runtime_config=runtime_config,
+            timeout_seconds=min(timeout, 30.0),  # Cap at 30s
+            endpoint_override=endpoint,
+        )
+
+        result = await checker.check()
+
+        return {
+            "provider_name": result.provider_name,
+            "status": result.status.value,
+            "latency_ms": result.latency_ms,
+            "timestamp": result.timestamp,
+            "request": result.request,
+            "response": result.response,
+            "config_used": result.config_used,
+            "error": result.error,
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Health check failed: {str(e)}"
+        )
 
 @router.get("/providers")
 async def list_providers():
@@ -304,6 +379,9 @@ async def get_provider_proxy(name: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 @router.get("/provider/{name}/runtime_config")
 async def get_provider_runtime_config(name: str, request: Request):

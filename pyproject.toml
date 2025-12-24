@@ -36,17 +36,18 @@ elasticsearch = ">=8.0.0"
 
 # Local packages
 app-yaml-config = {path = "packages_py/app_yaml_config", develop = true}
+ci-placeholders-keys = {path = "packages_py/ci_placeholders_keys", develop = true}
 db-connection-elasticsearch = {path = "packages_py/db_connection_elasticsearch", develop = true}
 db-connection-postgres = {path = "packages_py/db_connection_postgres", develop = true}
 db-connection-redis = {path = "packages_py/db_connection_redis", develop = true}
 env-resolve = {path = "packages_py/env_resolve", develop = true}
 fetch-auth-config = {path = "packages_py/fetch_auth_config", develop = true}
 fetch-auth-encoding = {path = "packages_py/fetch_auth_encoding", develop = true}
+fetch-client = {path = "packages_py/fetch_client", develop = true}
 proxy-config = {path = "packages_py/proxy_config", develop = true}
 proxy-dispatcher = {path = "packages_py/proxy_dispatcher", develop = true}
 vault-file = {path = "packages_py/vault_file", develop = true}
 yaml-config-factory = {path = "packages_py/yaml_config_factory", develop = true}
-ci-placeholders-keys = {path = "packages_py/ci_placeholders_keys", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"

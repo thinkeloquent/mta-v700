@@ -716,6 +716,24 @@ type = "directory"
 url = "packages_py/fetch_auth_encoding"
 
 [[package]]
+name = "fetch-client"
+version = "0.1.0"
+description = "Polyglot HTTP client for Python"
+optional = false
+python-versions = "^3.11"
+groups = ["main"]
+files = []
+develop = true
+
+[package.dependencies]
+httpx = "^0.28.1"
+pydantic = "^2.0.0"
+
+[package.source]
+type = "directory"
+url = "packages_py/fetch_client"
+
+[[package]]
 name = "frozenlist"
 version = "1.8.0"
 description = "A list-like structure which implements collections.abc.MutableSequence"
@@ -2823,4 +2841,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "fb576cb23ad5906d7df5fe1dbf80da805b89b9fb902bb4eb27cf9d67ee3d814f"
+content-hash = "1a081695036d8f5ee2aef53355570c8f389289b4b512bbb61485cb73d6ef5ba7"
