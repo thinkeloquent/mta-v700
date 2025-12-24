@@ -223,7 +223,8 @@ async def get_storage_config(name: str):
 
 
 @router.get("/provider/{name}/auth_config")
-async def get_provider_auth_config(name: str):
+@router.get("/provider/{name}/auth_config")
+async def get_provider_auth_config(name: str, request: Request):
     """Resolve auth config for a provider."""
     config = AppYamlConfig.get_instance()
 
@@ -234,7 +235,7 @@ async def get_provider_auth_config(name: str):
 
     try:
         factory = YamlConfigFactory(config)
-        result = factory.compute(f"providers.{name}", options=ComputeOptions(include_headers=True))
+        result = await factory.compute(f"providers.{name}", options=ComputeOptions(include_headers=True), request=request)
         return _safe_auth_response(result.auth_config, result.headers)
 
     except Exception as e:
@@ -242,7 +243,7 @@ async def get_provider_auth_config(name: str):
 
 
 @router.get("/service/{name}/auth_config")
-async def get_service_auth_config(name: str):
+async def get_service_auth_config(name: str, request: Request):
     """Resolve auth config for a service."""
     config = AppYamlConfig.get_instance()
 
@@ -252,14 +253,14 @@ async def get_service_auth_config(name: str):
 
     try:
         factory = YamlConfigFactory(config)
-        result = factory.compute(f"services.{name}", options=ComputeOptions(include_headers=True))
+        result = await factory.compute(f"services.{name}", options=ComputeOptions(include_headers=True), request=request)
         return _safe_auth_response(result.auth_config, result.headers)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/storage/{name}/auth_config")
-async def get_storage_auth_config(name: str):
+async def get_storage_auth_config(name: str, request: Request):
     """Resolve auth config for a storage."""
     config = AppYamlConfig.get_instance()
 
@@ -269,7 +270,7 @@ async def get_storage_auth_config(name: str):
 
     try:
         factory = YamlConfigFactory(config)
-        result = factory.compute(f"storages.{name}", options=ComputeOptions(include_headers=True))
+        result = await factory.compute(f"storages.{name}", options=ComputeOptions(include_headers=True), request=request)
         return _safe_auth_response(result.auth_config, result.headers)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -305,7 +306,7 @@ async def get_provider_proxy(name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/provider/{name}/runtime_config")
-async def get_provider_runtime_config(name: str):
+async def get_provider_runtime_config(name: str, request: Request):
     """Get complete runtime configuration for a provider."""
     config = AppYamlConfig.get_instance()
     # Check allowlist
@@ -315,7 +316,7 @@ async def get_provider_runtime_config(name: str):
 
     try:
         factory = YamlConfigFactory(config)
-        result = factory.compute_all(f"providers.{name}")
+        result = await factory.compute_all(f"providers.{name}", request=request)
 
         return {
             "config_type": result.config_type,
@@ -350,7 +351,7 @@ async def get_provider_runtime_config(name: str):
 
 
 @router.get("/service/{name}/runtime_config")
-async def get_service_runtime_config(name: str):
+async def get_service_runtime_config(name: str, request: Request):
     """Get complete runtime configuration for a service."""
     config = AppYamlConfig.get_instance()
 
@@ -360,7 +361,7 @@ async def get_service_runtime_config(name: str):
 
     try:
         factory = YamlConfigFactory(config)
-        result = factory.compute_all(f"services.{name}")
+        result = await factory.compute_all(f"services.{name}", request=request)
 
         return {
             "config_type": result.config_type,
@@ -395,7 +396,7 @@ async def get_service_runtime_config(name: str):
 
 
 @router.get("/storage/{name}/runtime_config")
-async def get_storage_runtime_config(name: str):
+async def get_storage_runtime_config(name: str, request: Request):
     """Get complete runtime configuration for a storage."""
     config = AppYamlConfig.get_instance()
 
@@ -405,7 +406,7 @@ async def get_storage_runtime_config(name: str):
 
     try:
         factory = YamlConfigFactory(config)
-        result = factory.compute_all(f"storages.{name}")
+        result = await factory.compute_all(f"storages.{name}", request=request)
 
         return {
             "config_type": result.config_type,

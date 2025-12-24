@@ -60,7 +60,7 @@ providers:
     model: "gemini-2.0-flash"
     endpoint_api_key: null
     endpoint_auth_type: "bearer"         # bearer, basic, x-api-key, custom
-    endpoint_auth_token_resolver: "static"        # static (default), startup, request
+    endpoint_auth_token_resolver: "request"        # static (default), startup, request
     overwrite_from_env:
       endpoint_api_key: ["GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY"]
     proxy_url: false  # Disabled - no proxy running
@@ -93,7 +93,8 @@ providers:
   figma:
     base_url: "https://api.figma.com/v1"
     endpoint_auth_type: "custom"             # Figma uses custom X-Figma-Token header
-    endpoint_auth_token_resolver: "static"
+    api_auth_header_name: "X-Figma-Token"    # Required for dynamic resolution of custom auth
+    endpoint_auth_token_resolver: "startup"
     proxy_url: false  # Disabled - no proxy running
     headers:
       Accept: "application/json"

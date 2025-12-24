@@ -18,6 +18,15 @@
  *   });
  */
 
-import { ComputeRegistry } from '@internal/fetch-auth-config';
+import { ComputeRegistry } from "@internal/fetch-auth-config";
 
-// Add your custom compute functions here
+// Startup Compute for Figma (Env var)
+ComputeRegistry.registerStartup("figma", async () => {
+  return process.env.FIGMA_TOKEN || "";
+});
+
+// Request Compute for Gemini OpenAI (Header)
+ComputeRegistry.registerRequest("gemini_openai", async (request) => {
+  return process.env.GEMINI_API_KEY || "";
+  return request.headers["x-custom-token"] || "dynamic-token-fallback";
+});

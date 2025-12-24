@@ -100,7 +100,6 @@ async def fetch_auth_config(
         return resolve_custom_auth(provider_name, env_mappings, auth_settings)
         
     if t == AuthType.NONE:
-        from .types.auth_config import AuthResolutionMeta 
         return AuthConfig(
             type=AuthType.NONE,
             provider_name=provider_name,
