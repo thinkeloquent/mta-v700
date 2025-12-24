@@ -182,12 +182,23 @@ class RedisConfig:
              del kwargs["host"]
              del kwargs["port"]
         
-        if self.use_ssl:
+        if self.use_ssl == True:
             kwargs["ssl"] = True
+        elif self.use_ssl == False:
+            kwargs["ssl"] = False
+
+        if self.ssl_cert_reqs:
             kwargs["ssl_cert_reqs"] = getattr(ssl, f"CERT_{self.ssl_cert_reqs.upper()}", ssl.CERT_NONE)
-            if self.ssl_ca_certs:
-                kwargs["ssl_ca_certs"] = self.ssl_ca_certs
+        elif self.ssl_cert_reqs == ssl.CERT_NONE:
+            kwargs["ssl_cert_reqs"] = None
+
+        if self.ssl_ca_certs:
+            kwargs["ssl_ca_certs"] = self.ssl_ca_certs
+
+        if self.ssl_check_hostname:
             kwargs["ssl_check_hostname"] = self.ssl_check_hostname
+        elif self.ssl_check_hostname == False:
+            kwargs["ssl_check_hostname"] = False
 
         if self.max_connections:
             kwargs["max_connections"] = self.max_connections

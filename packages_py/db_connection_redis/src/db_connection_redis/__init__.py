@@ -4,6 +4,7 @@ from .client import (
     get_redis_client,
     get_sync_redis_client,
     check_connection,
+    check_connection_status,
     format_connection_error
 )
 from .exceptions import RedisConfigError, RedisConnectionError, RedisImportError
@@ -15,6 +16,7 @@ __all__ = [
     "get_redis_client",
     "get_sync_redis_client",
     "check_connection",
+    "check_connection_status",
     "format_connection_error",
     "RedisConfigError",
     "RedisConnectionError",
