@@ -1,0 +1,26 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "fetch-client"
+version = "0.1.0"
+description = "Polyglot HTTP client for Python"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "fetch_client", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+httpx = "^0.28.1"
+pydantic = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+ruff = "^0.3.0"
+respx = "^0.22.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
