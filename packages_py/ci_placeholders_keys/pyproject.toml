@@ -1,0 +1,20 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "ci-placeholders-keys"
+version = "1.0.0"
+description = "Credential key constants, string transformations, and UUID key mapping utilities"
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "ci_placeholders_keys", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

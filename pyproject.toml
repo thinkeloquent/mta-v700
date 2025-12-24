@@ -46,6 +46,7 @@ proxy-config = {path = "packages_py/proxy_config", develop = true}
 proxy-dispatcher = {path = "packages_py/proxy_dispatcher", develop = true}
 vault-file = {path = "packages_py/vault_file", develop = true}
 yaml-config-factory = {path = "packages_py/yaml_config_factory", develop = true}
+ci-placeholders-keys = {path = "packages_py/ci_placeholders_keys", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"

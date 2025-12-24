@@ -1,0 +1,21 @@
+{
+    "name": "@internal/ci-placeholders-keys",
+    "version": "1.0.0",
+    "description": "Credential key constants, string transformations, and UUID key mapping utilities",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "test": "jest",
+        "lint": "biome lint src/"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@types/jest": "^29.5.0",
+        "@types/node": "^20.0.0",
+        "jest": "^30.2.0",
+        "ts-jest": "^29.4.6",
+        "typescript": "^5.0.0"
+    }
+}
