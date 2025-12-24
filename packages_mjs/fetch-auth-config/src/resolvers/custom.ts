@@ -34,6 +34,7 @@ export function resolveCustomAuth(
             resolvedFrom: { token: tokenResult.source! },
             tokenResolver: TokenResolverType.STATIC,
             isPlaceholder: false
-        }
+        },
+        resolverType: TokenResolverType.STATIC
     };
 }

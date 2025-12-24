@@ -65,10 +65,11 @@ class YamlConfigFactory:
         self._fetch_auth_config_fn = fetch_auth_config_fn
         self._encode_auth_fn = encode_auth_fn
 
-    def compute(
+    async def compute(
         self,
         path: str,
-        options: Optional[ComputeOptions] = None
+        options: Optional[ComputeOptions] = None,
+        request: Any = None
     ) -> ComputeResult:
         """
         Compute comprehensive runtime configuration.
@@ -84,7 +85,7 @@ class YamlConfigFactory:
             auth_error = None
             
             try:
-                auth_result = self._compute_auth_internal(config_type, config_name, opts.include_headers)
+                auth_result = await self._compute_auth_internal(config_type, config_name, opts.include_headers, request)
             except Exception as e:
                 if opts.suppress_auth_errors:
                     logger.error(f"compute: Auth resolution failed but suppressed: {e}")
@@ -185,16 +186,21 @@ class YamlConfigFactory:
             # Fallback to raw config
             return self._get_raw_config(config_type, config_name, remove_meta_keys=True)
 
-    def compute_all(self, path: str, environment: Optional[str] = None) -> ComputeResult:
+    async def compute_all(
+        self,
+        path: str,
+        environment: Optional[str] = None,
+        request: Any = None
+    ) -> ComputeResult:
         """Convenience method to get all configuration aspects."""
-        return self.compute(path, ComputeOptions(
+        return await self.compute(path, ComputeOptions(
             include_headers=True,
             include_proxy=True,
             include_network=True,
             include_config=True,
             suppress_auth_errors=True,
             environment=environment
-        ))
+        ), request)
 
     # =========================================================================
     # Internal Helpers
@@ -236,17 +242,18 @@ class YamlConfigFactory:
 
         return raw
 
-    def _compute_auth_internal(
+    async def _compute_auth_internal(
         self,
         config_type: str,
         config_name: str,
-        include_headers: bool = False
+        include_headers: bool = False,
+        request: Any = None
     ) -> Dict[str, Any]:
         logger.debug(f"compute_auth_internal type={config_type} name={config_name}")
         
         raw_config = self._get_raw_config(config_type, config_name, remove_meta_keys=False)
         
-        auth_config = self._fetch_auth_config_fn(config_name, raw_config)
+        auth_config = await self._fetch_auth_config_fn(config_name, raw_config, request)
         
         result = {"auth_config": auth_config}
 

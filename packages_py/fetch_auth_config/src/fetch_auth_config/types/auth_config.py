@@ -16,6 +16,7 @@ class AuthConfig:
     type: AuthType
     provider_name: str
     resolution: AuthResolutionMeta
+    resolver_type: TokenResolverType = TokenResolverType.STATIC
     
     # Credentials
     username: Optional[str] = None

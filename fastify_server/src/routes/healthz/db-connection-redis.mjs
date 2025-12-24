@@ -65,7 +65,7 @@ export default async function redisRoutes(fastify) {
     const configInstance = AppYamlConfig.getInstance();
     const factory = new YamlConfigFactory(configInstance);
     // @ts-ignore - computeAll is typed but we are in JS
-    const result = factory.computeAll('storages.redis');
+    const result = await factory.computeAll('storages.redis', undefined, request);
     return createRuntimeConfigResponse(result);
   });
 }

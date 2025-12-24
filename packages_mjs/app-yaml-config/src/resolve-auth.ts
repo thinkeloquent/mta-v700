@@ -17,15 +17,15 @@ export interface ResolveAuthOptions {
  * Resolve authentication configuration for a provider.
  * Thin wrapper around fetch-auth-config that mirrors resolve-proxy pattern.
  */
-export function resolveProviderAuth(
+export async function resolveProviderAuth(
     providerName: string,
     providerConfig: Record<string, any>,
     options: ResolveAuthOptions = {}
-): AuthResolutionResult {
+): Promise<AuthResolutionResult> {
     const { includeHeaders = true } = options;
 
     // Use fetch-auth-config for credential resolution
-    const authConfig = fetchAuthConfig({
+    const authConfig = await fetchAuthConfig({
         providerName,
         providerConfig,
     });

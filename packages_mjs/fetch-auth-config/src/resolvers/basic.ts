@@ -55,6 +55,7 @@ export function resolveBasicAuth(
             resolvedFrom,
             tokenResolver: TokenResolverType.STATIC,
             isPlaceholder: false
-        }
+        },
+        resolverType: TokenResolverType.STATIC
     };
 }

@@ -39,7 +39,7 @@ export class YamlConfigFactory {
     /**
      * Compute comprehensive runtime configuration.
      */
-    compute(path: string, options: ComputeOptions = {}): ComputeResult {
+    async compute(path: string, options: ComputeOptions = {}, request?: any): Promise<ComputeResult> {
         this.logDebug('compute: Starting', { path, options });
 
         try {
@@ -47,29 +47,16 @@ export class YamlConfigFactory {
 
             // 1. Auth Resolution
             let authResult: ComputedAuthConfig = {
-                authConfig: null as any // Will be set if successful or if fallback required? 
-                // Ideally we want authConfig to be nullable in the type? 
-                // Since we can't change the type definition easily without seeing it (it's in types.ts not index.ts but index blocks export * from types.ts)
-                // Let's assume we need to update types.ts properly first or cast.
-                // Actually index.ts imports ComputeResult from ./types.js.
-                // I need to update types.js first if I want to change the interface.
+                authConfig: null as any
             };
 
-            // But wait, I can modify the ComputedAuthConfig type if it is defined in types.ts.
-            // Let me check types.ts first. I can't modify it here.
-            // I will implement the logic assuming types are compatible or I will catch and return error field.
-
-            // I'll wrap auth resolution
             let authError: any = null;
             try {
-                authResult = this.computeAuthInternal(configType, configName, options.includeHeaders);
+                authResult = await this.computeAuthInternal(configType, configName, options.includeHeaders, request);
             } catch (err) {
                 if (options.suppressAuthErrors) {
                     this.logError('compute: Auth resolution failed but suppressed', err);
                     authError = err;
-                    // Provide a dummy or null auth config? 
-                    // Current ComputeResult expects authConfig.
-                    // I likely need to update ComputeResult to make authConfig optional OR provide a partial one.
                 } else {
                     throw err;
                 }
@@ -81,7 +68,7 @@ export class YamlConfigFactory {
                 authConfig: authResult?.authConfig, // Might be undefined if failed
                 headers: authResult?.headers,
                 authError
-            } as any; // Cast for now, will update types next
+            } as any;
 
             // 2. Proxy Resolution
             if (options.includeProxy) {
@@ -193,7 +180,7 @@ export class YamlConfigFactory {
     /**
      * Convenience method to get all configuration aspects.
      */
-    computeAll(path: string, environment?: string): ComputeResult {
+    async computeAll(path: string, environment?: string, request?: any): Promise<ComputeResult> {
         return this.compute(path, {
             includeHeaders: true,
             includeProxy: true,
@@ -201,7 +188,7 @@ export class YamlConfigFactory {
             includeConfig: true,
             suppressAuthErrors: true,
             environment
-        });
+        }, request);
     }
 
     // =========================================================================
@@ -256,18 +243,20 @@ export class YamlConfigFactory {
         return raw;
     }
 
-    private computeAuthInternal(
+    private async computeAuthInternal(
         configType: ConfigPath,
         configName: string,
-        includeHeaders: boolean = false
-    ): ComputedAuthConfig {
+        includeHeaders: boolean = false,
+        request?: any
+    ): Promise<ComputedAuthConfig> {
         this.logDebug('computeAuthInternal', { type: configType, name: configName });
 
         const rawConfig = this.getRawConfig(configType, configName, false);
 
-        const authConfig = this.fetchAuthConfigFn({
+        const authConfig = await this.fetchAuthConfigFn({
             providerName: configName,
-            providerConfig: rawConfig
+            providerConfig: rawConfig,
+            request
         });
 
         const result: ComputedAuthConfig = { authConfig };

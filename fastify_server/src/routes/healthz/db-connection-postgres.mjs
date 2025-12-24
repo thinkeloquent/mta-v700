@@ -94,7 +94,7 @@ export default async function postgresRoutes(fastify) {
     const configInstance = AppYamlConfig.getInstance();
     const factory = new YamlConfigFactory(configInstance);
     // @ts-ignore - computeAll is typed but we are in JS
-    const result = factory.computeAll('storages.postgres');
+    const result = await factory.computeAll('storages.postgres', undefined, request);
     return createRuntimeConfigResponse(result);
   });
 }

@@ -1,6 +1,6 @@
 """AppYamlConfig healthz routes."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from app_yaml_config import AppYamlConfig, get_provider, get_service, get_storage
 from fetch_auth_config import AuthConfig
 from fetch_auth_encoding import encode_auth

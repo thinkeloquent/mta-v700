@@ -473,6 +473,20 @@ files = [
 ]
 
 [[package]]
+name = "ci-placeholders-keys"
+version = "1.0.0"
+description = "Credential key constants, string transformations, and UUID key mapping utilities"
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "packages_py/ci_placeholders_keys"
+
+[[package]]
 name = "click"
 version = "8.3.1"
 description = "Composable command line interface toolkit"
@@ -2809,4 +2823,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "f5102ec6edabf957c1a4e29d540f927e3cf43af8b249fc8bb304f73745d7e43e"
+content-hash = "fb576cb23ad5906d7df5fe1dbf80da805b89b9fb902bb4eb27cf9d67ee3d814f"

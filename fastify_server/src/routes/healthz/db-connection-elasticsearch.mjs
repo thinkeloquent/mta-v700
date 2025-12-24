@@ -25,7 +25,7 @@ export default async function elasticsearchRoutes(fastify) {
     const configInstance = AppYamlConfig.getInstance();
     const factory = new YamlConfigFactory(configInstance);
     // @ts-ignore - computeAll is typed but we are in JS
-    const result = factory.computeAll('storages.elasticsearch');
+    const result = await factory.computeAll('storages.elasticsearch', undefined, request);
     return createRuntimeConfigResponse(result);
   });
 }

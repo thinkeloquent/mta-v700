@@ -21,3 +21,17 @@ class InvalidAuthTypeError(AuthConfigError):
 
 class ProviderNotFoundError(AuthConfigError):
     pass
+
+class ComputeFunctionNotFoundError(AuthConfigError):
+    def __init__(self, provider_name: str, resolver_type: str):
+        msg = f"No {resolver_type} compute function registered for provider '{provider_name}'"
+        super().__init__(msg)
+        self.provider_name = provider_name
+        self.resolver_type = resolver_type
+
+class ComputeFunctionError(AuthConfigError):
+    def __init__(self, provider_name: str, cause: Exception):
+        msg = f"Compute function failed for provider '{provider_name}': {str(cause)}"
+        super().__init__(msg)
+        self.provider_name = provider_name
+        self.cause = cause

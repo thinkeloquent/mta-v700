@@ -29,6 +29,7 @@ export function resolveBearerAuth(
             resolvedFrom: { token: tokenResult.source! },
             tokenResolver: TokenResolverType.STATIC,
             isPlaceholder: false
-        }
+        },
+        resolverType: TokenResolverType.STATIC
     };
 }

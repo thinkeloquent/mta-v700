@@ -219,7 +219,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
       try {
         const factory = new YamlConfigFactory(config);
-        const result = factory.compute(`providers.${name}`, { includeHeaders: true });
+        const result = await factory.compute(`providers.${name}`, { includeHeaders: true }, request);
         return safeAuthResponse(result.authConfig, result.headers);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
@@ -237,7 +237,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
       try {
         const factory = new YamlConfigFactory(config);
-        const result = factory.compute(`services.${name}`, { includeHeaders: true });
+        const result = await factory.compute(`services.${name}`, { includeHeaders: true }, request);
         return safeAuthResponse(result.authConfig, result.headers);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
@@ -255,7 +255,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
       try {
         const factory = new YamlConfigFactory(config);
-        const result = factory.compute(`storages.${name}`, { includeHeaders: true });
+        const result = await factory.compute(`storages.${name}`, { includeHeaders: true }, request);
         return safeAuthResponse(result.authConfig, result.headers);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
@@ -304,7 +304,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
       try {
         const factory = new YamlConfigFactory(config);
-        const result = factory.computeAll(`providers.${name}`);
+        const result = await factory.computeAll(`providers.${name}`, undefined, request);
 
         return {
           config_type: result.configType,
@@ -344,7 +344,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
       try {
         const factory = new YamlConfigFactory(config);
-        const result = factory.computeAll(`services.${name}`);
+        const result = await factory.computeAll(`services.${name}`, undefined, request);
 
         return {
           config_type: result.configType,
@@ -384,7 +384,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
       try {
         const factory = new YamlConfigFactory(config);
-        const result = factory.computeAll(`storages.${name}`);
+        const result = await factory.computeAll(`storages.${name}`, undefined, request);
 
         return {
           config_type: result.configType,

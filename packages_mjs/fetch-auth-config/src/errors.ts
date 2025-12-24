@@ -35,3 +35,23 @@ export class ProviderNotFoundError extends AuthConfigError {
         this.name = 'ProviderNotFoundError';
     }
 }
+
+export class ComputeFunctionNotFoundError extends AuthConfigError {
+    constructor(
+        public providerName: string,
+        public resolverType: string
+    ) {
+        super(`No ${resolverType} compute function registered for provider '${providerName}'`);
+        this.name = 'ComputeFunctionNotFoundError';
+    }
+}
+
+export class ComputeFunctionError extends AuthConfigError {
+    constructor(
+        public providerName: string,
+        public cause: Error
+    ) {
+        super(`Compute function failed for provider '${providerName}': ${cause.message}`);
+        this.name = 'ComputeFunctionError';
+    }
+}

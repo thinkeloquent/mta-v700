@@ -1,6 +1,6 @@
 """Redis healthz routes."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from db_connection_redis import (
     RedisConfig,
     check_connection_status,
@@ -26,9 +26,9 @@ async def redis_status():
 
 
 @router.get("/config")
-async def redis_config():
+async def redis_config(request: Request):
     """Redis configuration."""
     config_instance = AppYamlConfig.get_instance()
     factory = YamlConfigFactory(config_instance)
-    result = factory.compute_all("storages.redis")
+    result = await factory.compute_all("storages.redis", request=request)
     return create_runtime_config_response(result)

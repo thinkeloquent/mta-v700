@@ -35,6 +35,7 @@ else:
 
 # Step 3: Import and expose the app (after ENV is loaded)
 # This import must happen AFTER EnvStore.on_startup so that AppYamlConfig sees the env vars
+from . import endpoint_auth_compute  # Register compute functions
 from .app import app  # noqa: E402
 
 __all__ = ["app"]

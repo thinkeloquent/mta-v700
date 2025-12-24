@@ -1,16 +1,16 @@
 """Postgres healthz routes."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from db_connection_postgres import (
     PostgresConfig,
     DatabaseManager,
-    get_db_manager,
     DatabaseConnectionError
 )
 from app_yaml_config import AppYamlConfig
 from yaml_config_factory import YamlConfigFactory, create_runtime_config_response
 
 router = APIRouter(prefix="/healthz/admin/db-connection-postgres", tags=["Admin"])
+
 
 # SSL modes to try in order of preference
 SSL_MODES = [
@@ -114,5 +114,5 @@ async def postgres_config():
     """Postgres configuration."""
     config_instance = AppYamlConfig.get_instance()
     factory = YamlConfigFactory(config_instance)
-    result = factory.compute_all("storages.postgres")
+    result = await factory.compute_all("storages.postgres")
     return create_runtime_config_response(result)

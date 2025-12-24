@@ -20,6 +20,9 @@ export interface AuthConfig {
     /** Resolution metadata */
     resolution: AuthResolutionMeta;
 
+    /** Resolver strategy used */
+    resolverType: TokenResolverType;
+
     /** Token/API key (for bearer, x-api-key) */
     token?: string;
 

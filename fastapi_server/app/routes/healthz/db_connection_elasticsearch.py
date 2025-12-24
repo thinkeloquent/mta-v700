@@ -1,6 +1,6 @@
 """Elasticsearch healthz routes."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from db_connection_elasticsearch import (
     ElasticsearchConfig,
     check_connection,
@@ -25,9 +25,9 @@ async def elasticsearch_status():
 
 
 @router.get("/config")
-async def elasticsearch_config():
+async def elasticsearch_config(request: Request):
     """Elasticsearch configuration."""
     config_instance = AppYamlConfig.get_instance()
     factory = YamlConfigFactory(config_instance)
-    result = factory.compute_all("storages.elasticsearch")
+    result = await factory.compute_all("storages.elasticsearch", request=request)
     return create_runtime_config_response(result)

@@ -46,4 +46,5 @@ if (vaultFile) {
 }
 
 // Step 3: Import and start the server (after ENV is loaded)
+await import("./endpoint_auth_compute.mjs"); // Register compute functions
 await import("./app.mjs");
