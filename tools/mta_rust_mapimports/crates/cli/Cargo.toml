@@ -1,0 +1,20 @@
+[package]
+name = "mta-rust-mapimports"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "CLI tool for mapping imports in Python and Node.js/TypeScript projects"
+
+[[bin]]
+name = "mapimports"
+path = "src/main.rs"
+
+[dependencies]
+mta-rust-mapimports-core = { path = "../core", version = "0.1.0" }
+clap.workspace = true
+indicatif.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+anyhow.workspace = true
