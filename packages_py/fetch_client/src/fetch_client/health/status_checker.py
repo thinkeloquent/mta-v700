@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from urllib.parse import quote
 
-import httpx
+from httpx import TimeoutException, ConnectError
 
 from ..client import FetchClient
 from ..config import ClientConfig
@@ -89,7 +89,7 @@ class FetchStatusChecker:
                 config_used=config_used,
             )
 
-        except httpx.TimeoutException as e:
+        except TimeoutException as e:
             latency_ms = (time.perf_counter() - start_time) * 1000
             return FetchStatusResult(
                 provider_name=self.provider_name,
@@ -104,7 +104,7 @@ class FetchStatusChecker:
                 },
             )
 
-        except httpx.ConnectError as e:
+        except ConnectError as e:
             latency_ms = (time.perf_counter() - start_time) * 1000
             return FetchStatusResult(
                 provider_name=self.provider_name,
