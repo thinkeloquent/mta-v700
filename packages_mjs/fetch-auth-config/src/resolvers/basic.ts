@@ -32,9 +32,17 @@ export function resolveBasicAuth(
 
     // Password/Token
     if ([AuthType.BASIC, AuthType.BASIC_EMAIL].includes(authType)) {
-        const res = resolveEnvVarChain(envMappings.password);
-        if (!res.value) throw new MissingCredentialError(providerName, 'password', res.tried);
-        password = res.value;
+        let res = resolveEnvVarChain(envMappings.password);
+        if (!res.value) {
+            // Fallback: try using apiKey as password (common pattern where endpoint_api_key is used for password)
+            const tokenRes = resolveEnvVarChain(envMappings.apiKey);
+            if (tokenRes.value) {
+                res = tokenRes;
+            } else {
+                throw new MissingCredentialError(providerName, 'password', res.tried);
+            }
+        }
+        password = res.value ?? undefined;
         resolvedFrom['password'] = res.source!;
     } else {
         const res = resolveEnvVarChain(envMappings.apiKey);

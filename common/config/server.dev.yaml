@@ -58,6 +58,7 @@ providers:
   gemini_openai:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
     model: "gemini-2.0-flash"
+    health_endpoint: "/models"
     endpoint_api_key: null
     endpoint_auth_type: "bearer"         # bearer, basic, x-api-key, custom
     endpoint_auth_token_resolver: "request"        # static (default), startup, request
@@ -75,6 +76,7 @@ providers:
   openai:
     base_url: "https://api.openai.com/v1"
     model: "gpt-4"
+    health_endpoint: "/models"
     endpoint_auth_type: "bearer"
     endpoint_auth_token_resolver: "static"
     proxy_url: false  # Disabled - no proxy running
@@ -84,14 +86,19 @@ providers:
   anthropic:
     base_url: "https://api.anthropic.com/v1"
     model: "claude-3-sonnet"
+    health_endpoint: "/models"
     endpoint_auth_type: "x-api-key"       # Anthropic uses x-api-key header
     endpoint_auth_token_resolver: "static"
     proxy_url: false  # Disabled - no proxy running
     overwrite_from_env:
       endpoint_api_key: "ANTHROPIC_API_KEY"
+    headers:
+      anthropic-version: "2023-06-01"
+      content-type: "application/json"
 
   figma:
     base_url: "https://api.figma.com/v1"
+    health_endpoint: "/me"
     endpoint_auth_type: "custom"             # Figma uses custom X-Figma-Token header
     api_auth_header_name: "X-Figma-Token"    # Required for dynamic resolution of custom auth
     endpoint_auth_token_resolver: "startup"
@@ -105,6 +112,7 @@ providers:
     
   github:
     base_url: "https://api.github.com"
+    health_endpoint: "/user"
     endpoint_api_key: null
     endpoint_auth_type: "bearer"
     endpoint_auth_token_resolver: "static"
@@ -112,6 +120,7 @@ providers:
     headers:
       Accept: "application/vnd.github+json"
       X-GitHub-Api-Version: "2022-11-28"
+      User-Agent: "MTA-v700-FetchClient"
     # Custom environment variable mappings
     overwrite_from_env:
       endpoint_api_key:
@@ -182,19 +191,24 @@ providers:
   # ServiceNow
   servicenow:
     base_url: "https://dev12345.service-now.com" # Example instance
-    endpoint_api_key: "SERVICENOW_PASSWORD"
+    health_endpoint: "/api/now/table/sys_user?sysparm_limit=1"
+    username: null
+    endpoint_api_key: null
     endpoint_auth_type: "basic"
     endpoint_auth_token_resolver: "static"
     proxy_url: null  # Disabled - no proxy running
     overwrite_from_env:
+      username: SERVICENOW_USERNAME
       endpoint_api_key: SERVICENOW_PASSWORD
       proxy_url: HTTPS_AUTH_PROXY
 
   # Rally (Broadcom)
   rally:
     base_url: "https://rally1.rallydev.com"
+    health_endpoint: "/slm/webservice/v2.0/subscription"
     endpoint_api_key: null
-    endpoint_auth_type: "header"
+    endpoint_auth_type: "custom_header"
+    api_auth_header_name: "ZSESSIONID"
     proxy_url: 'http://proxy.rally.local:8080'  # Disabled - no proxy running
     overwrite_from_env:
       endpoint_api_key: RALLY_API_KEY
@@ -202,6 +216,7 @@ providers:
 
   statsig:
     base_url: "https://statsigapi.net/console/v1"
+    health_endpoint: "/gates"
     endpoint_api_key: null
     endpoint_auth_type: "custom_header"
     api_auth_header_name: "statsig-api-key"
@@ -227,20 +242,20 @@ providers:
   # Akamai Edge API (EdgeGrid authentication)
   akamai:
     base_url: null  # Set via AKAMAI_HOST or .edgerc file
-    endpoint_api_client: null
-    endpoint_api_secret: null
-    endpoint_api_access: null
+    client_token: null
+    client_secret: null
+    access_token: null
     host: null
     health_endpoint: "/-/client-api/active-grants/implicit"
     endpoint_auth_type: "edgegrid"  # Akamai EdgeGrid signature-based auth
     endpoint_auth_token_resolver: "static"
     proxy_url: false  # Disabled - no proxy running
     overwrite_from_env:
-      base_url: "SONAR_BASE_URL"
+      base_url: "AKAMAI_BASE_URL"
       host: "AKAMAI_HOST"
-      endpoint_api_client: AKAMAI_CLIENT_TOKEN
-      endpoint_api_secret: AKAMAI_CLIENT_SECRET
-      endpoint_api_access: AKAMAI_ACCESS_TOKEN
+      client_token: AKAMAI_CLIENT_TOKEN
+      client_secret: AKAMAI_CLIENT_SECRET
+      access_token: AKAMAI_ACCESS_TOKEN
   
 # =============================================================================
 # Proxy Configuration
@@ -394,16 +409,12 @@ storage:
       cloud_id: null
       base_url: null
       host: null
-      env_host: "ELASTIC_DB_HOST"
       port: null
-      env_port: "ELASTIC_DB_PORT"
       scheme: null
       endpoint_api_key: null
       username: null
-      env_username: "ELASTIC_DB_USERNAME"
       password: null
       use_tls: null
-      env_use_tls: "ELASTIC_DB_TLS"
       verify_certs: null
       ssl_show_warn: null
       index: null
@@ -411,6 +422,10 @@ storage:
       verify_cluster_connection: false
 
       overwrite_from_env:
+        host: "ELASTIC_DB_HOST"
+        port: "ELASTIC_DB_PORT"
+        username: "ELASTIC_DB_USERNAME"
+        use_tls: "ELASTIC_DB_TLS"
         cloud_id: "ELASTIC_DB_CLOUD_ID"
         vendor_type: "ELASTIC_DB_VENDOR_TYPE"
         scheme: "ELASTIC_DB_SCHEMA"
@@ -423,7 +438,7 @@ storage:
         ssl_show_warn: "ELASTIC_DB_SSL_SHOW_WARN"
         verify_certs: "ELASTIC_DB_VERIFY_CERTS"
         password: "ELASTIC_DB_PASSWORD"
-        endpoint_api_key: 
+        endpoint_api_key:
           - "ELASTICSEARCH_API_KEY"
           - "ES_API_KEY"
           - "OPENSEARCH_API_KEY"

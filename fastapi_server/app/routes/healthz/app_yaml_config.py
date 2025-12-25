@@ -131,6 +131,38 @@ async def get_compute(name: str):
 
 # ==================== Providers ====================
 
+def _format_runtime_config(result) -> dict:
+    """Format runtime config result for response."""
+    return {
+        "config_type": result.config_type,
+        "config_name": result.config_name,
+        "auth": _safe_auth_response(result.auth_config, result.headers) if result.auth_config else None,
+        "auth_error": {
+            "message": str(result.auth_error),
+            "code": getattr(result.auth_error, "code", "UNKNOWN"),
+            "details": getattr(result.auth_error, "details", None)
+        } if result.auth_error else None,
+        "proxy": {
+            "proxy_url": result.proxy_config.proxy_url,
+            "resolution": {
+                "source": result.proxy_config.source,
+                "env_var_used": result.proxy_config.env_var_used,
+                "original_value": result.proxy_config.original_value,
+                "global_proxy": result.proxy_config.global_proxy,
+                "app_env": result.proxy_config.app_env,
+            }
+        } if result.proxy_config else None,
+        "network": {
+            "default_environment": result.network_config.default_environment,
+            "proxy_urls": result.network_config.proxy_urls,
+            "ca_bundle": result.network_config.ca_bundle,
+            "cert": result.network_config.cert,
+            "cert_verify": result.network_config.cert_verify,
+            "agent_proxy": result.network_config.agent_proxy
+        } if result.network_config else None,
+        "config": result.config,
+    }
+
 @router.get("/provider/{name}/fetch/status")
 async def get_provider_fetch_status(
     name: str,
@@ -175,7 +207,8 @@ async def get_provider_fetch_status(
                 },
                 "config_used": {
                     "base_url": runtime_config.config.get("base_url"),
-                }
+                },
+                "runtime_config": _format_runtime_config(runtime_config)
             }
 
         # Execute health check
@@ -188,6 +221,8 @@ async def get_provider_fetch_status(
 
         result = await checker.check()
 
+        formatted_config = _format_runtime_config(runtime_config)
+
         return {
             "provider_name": result.provider_name,
             "status": result.status.value,
@@ -195,7 +230,7 @@ async def get_provider_fetch_status(
             "timestamp": result.timestamp,
             "request": result.request,
             "response": result.response,
-            "config_used": result.config_used,
+            "config_used": formatted_config,
             "error": result.error,
         }
 
@@ -395,35 +430,7 @@ async def get_provider_runtime_config(name: str, request: Request):
     try:
         factory = YamlConfigFactory(config)
         result = await factory.compute_all(f"providers.{name}", request=request)
-
-        return {
-            "config_type": result.config_type,
-            "config_name": result.config_name,
-            "auth": _safe_auth_response(result.auth_config, result.headers) if result.auth_config else None,
-            "auth_error": {
-                "message": str(result.auth_error),
-                "type": type(result.auth_error).__name__
-            } if result.auth_error else None,
-            "proxy": {
-                "proxy_url": result.proxy_config.proxy_url,
-                "resolution": {
-                    "source": result.proxy_config.source,
-                    "env_var_used": result.proxy_config.env_var_used,
-                    "original_value": result.proxy_config.original_value,
-                    "global_proxy": result.proxy_config.global_proxy,
-                    "app_env": result.proxy_config.app_env,
-                }
-            } if result.proxy_config else None,
-            "network": {
-                "default_environment": result.network_config.default_environment,
-                "proxy_urls": result.network_config.proxy_urls,
-                "ca_bundle": result.network_config.ca_bundle,
-                "cert": result.network_config.cert,
-                "cert_verify": result.network_config.cert_verify,
-                "agent_proxy": result.network_config.agent_proxy
-            } if result.network_config else None,
-            "config": result.config,
-        }
+        return _format_runtime_config(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -440,35 +447,7 @@ async def get_service_runtime_config(name: str, request: Request):
     try:
         factory = YamlConfigFactory(config)
         result = await factory.compute_all(f"services.{name}", request=request)
-
-        return {
-            "config_type": result.config_type,
-            "config_name": result.config_name,
-            "auth": _safe_auth_response(result.auth_config, result.headers) if result.auth_config else None,
-            "auth_error": {
-                "message": str(result.auth_error),
-                "type": type(result.auth_error).__name__
-            } if result.auth_error else None,
-            "proxy": {
-                "proxy_url": result.proxy_config.proxy_url,
-                "resolution": {
-                    "source": result.proxy_config.source,
-                    "env_var_used": result.proxy_config.env_var_used,
-                    "original_value": result.proxy_config.original_value,
-                    "global_proxy": result.proxy_config.global_proxy,
-                    "app_env": result.proxy_config.app_env,
-                }
-            } if result.proxy_config else None,
-            "network": {
-                "default_environment": result.network_config.default_environment,
-                "proxy_urls": result.network_config.proxy_urls,
-                "ca_bundle": result.network_config.ca_bundle,
-                "cert": result.network_config.cert,
-                "cert_verify": result.network_config.cert_verify,
-                "agent_proxy": result.network_config.agent_proxy
-            } if result.network_config else None,
-            "config": result.config,
-        }
+        return _format_runtime_config(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -485,35 +464,7 @@ async def get_storage_runtime_config(name: str, request: Request):
     try:
         factory = YamlConfigFactory(config)
         result = await factory.compute_all(f"storages.{name}", request=request)
-
-        return {
-            "config_type": result.config_type,
-            "config_name": result.config_name,
-            "auth": _safe_auth_response(result.auth_config, result.headers) if result.auth_config else None,
-            "auth_error": {
-                "message": str(result.auth_error),
-                "type": type(result.auth_error).__name__
-            } if result.auth_error else None,
-            "proxy": {
-                "proxy_url": result.proxy_config.proxy_url,
-                "resolution": {
-                    "source": result.proxy_config.source,
-                    "env_var_used": result.proxy_config.env_var_used,
-                    "original_value": result.proxy_config.original_value,
-                    "global_proxy": result.proxy_config.global_proxy,
-                    "app_env": result.proxy_config.app_env,
-                }
-            } if result.proxy_config else None,
-            "network": {
-                "default_environment": result.network_config.default_environment,
-                "proxy_urls": result.network_config.proxy_urls,
-                "ca_bundle": result.network_config.ca_bundle,
-                "cert": result.network_config.cert,
-                "cert_verify": result.network_config.cert_verify,
-                "agent_proxy": result.network_config.agent_proxy
-            } if result.network_config else None,
-            "config": result.config,
-        }
+        return _format_runtime_config(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

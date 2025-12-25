@@ -102,6 +102,9 @@ importers:
       '@internal/fetch-auth-encoding':
         specifier: workspace:*
         version: link:../packages_mjs/fetch-auth-encoding
+      '@internal/fetch-client':
+        specifier: workspace:*
+        version: link:../packages_mjs/fetch-client
       '@internal/proxy-dispatcher':
         specifier: workspace:*
         version: link:../packages_mjs/proxy-dispatcher

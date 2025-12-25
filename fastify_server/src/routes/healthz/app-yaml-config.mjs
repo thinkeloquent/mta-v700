@@ -10,6 +10,18 @@ function maskValue(value, visibleChars = 20) {
   return `${value.substring(0, visibleChars)}...`;
 }
 
+function isSensitiveHeader(headerName) {
+  const lower = headerName.toLowerCase();
+  // Mask authorization, api-key, token, secret headers
+  return lower === 'authorization' ||
+    lower.includes('api-key') ||
+    lower.includes('apikey') ||
+    lower.includes('token') ||
+    lower.includes('secret') ||
+    lower.includes('password') ||
+    lower.includes('credential');
+}
+
 function safeAuthResponse(authConfig, headers) {
   return {
     authType: authConfig.type,
@@ -30,7 +42,7 @@ function safeAuthResponse(authConfig, headers) {
     headers: Object.fromEntries(
       Object.entries(headers || {}).map(([k, v]) => [
         k,
-        k.toLowerCase() === 'authorization' ? maskValue(v) : v
+        isSensitiveHeader(k) ? maskValue(v) : v
       ])
     ),
     headersCount: Object.keys(headers || {}).length,
@@ -121,6 +133,96 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       const config = AppYamlConfig.getInstance();
       const providers = config.get('providers') || {};
       return { providers: Object.keys(providers) };
+    });
+
+    // Helper to format runtime config response
+    function formatRuntimeConfig(result) {
+      return {
+        config_type: result.configType,
+        config_name: result.configName,
+        auth: result.authConfig ? safeAuthResponse(result.authConfig, result.headers) : null,
+        auth_error: result.authError ? {
+          message: result.authError.message,
+          code: result.authError.code,
+          details: result.authError.details
+        } : null,
+        proxy: result.proxyConfig ? {
+          proxy_url: result.proxyConfig.proxyUrl,
+          resolution: {
+            source: result.proxyConfig.source,
+            env_var_used: result.proxyConfig.envVarUsed,
+            original_value: result.proxyConfig.originalValue,
+            global_proxy: result.proxyConfig.globalProxy,
+            app_env: result.proxyConfig.appEnv,
+          }
+        } : null,
+        network: result.networkConfig,
+        config: result.config, // Raw merged config
+      };
+    }
+
+    fastify.get('/provider/:name/fetch/status', async (request, reply) => {
+      const { FetchStatusChecker } = await import('@internal/fetch-client');
+      const config = AppYamlConfig.getInstance();
+      const name = request.params.name;
+      const timeout = parseFloat(request.query.timeout) || 10.0;
+      const endpoint = request.query.endpoint || undefined;
+
+      const allowed = config.get('expose_yaml_config_provider') || [];
+      if (!allowed.includes(name)) {
+        return reply.code(403).send({ error: `Provider '${name}' not in allowlist` });
+      }
+
+      try {
+        const factory = new YamlConfigFactory(config);
+        const runtimeConfig = await factory.computeAll(
+          `providers.${name}`,
+          undefined,
+          request
+        );
+
+        // Check for auth errors
+        if (runtimeConfig.authError) {
+          return {
+            provider_name: name,
+            status: "config_error",
+            error: {
+              type: "AuthConfigError",
+              message: String(runtimeConfig.authError),
+            },
+            config_used: {
+              base_url: runtimeConfig.config.base_url,
+            },
+            runtime_config: formatRuntimeConfig(runtimeConfig)
+          };
+        }
+
+        const checker = new FetchStatusChecker(
+          name,
+          runtimeConfig,
+          Math.min(timeout, 30.0),
+          endpoint
+        );
+
+        const result = await checker.check();
+
+        const formattedConfig = formatRuntimeConfig(runtimeConfig);
+
+        return {
+          provider_name: result.provider_name,
+          status: result.status,
+          latency_ms: result.latency_ms,
+          timestamp: result.timestamp,
+          request: result.request,
+          response: result.response,
+          config_used: formattedConfig,
+          error: result.error,
+        };
+
+      } catch (err) {
+        request.log.error(err);
+        return reply.code(500).send({ error: `Health check failed: ${err.message}` });
+      }
     });
 
     fastify.get('/provider/*', async (request, reply) => {
@@ -305,29 +407,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       try {
         const factory = new YamlConfigFactory(config);
         const result = await factory.computeAll(`providers.${name}`, undefined, request);
-
-        return {
-          config_type: result.configType,
-          config_name: result.configName,
-          auth: result.authConfig ? safeAuthResponse(result.authConfig, result.headers) : null,
-          auth_error: result.authError ? {
-            message: result.authError.message,
-            code: result.authError.code,
-            details: result.authError.details
-          } : null,
-          proxy: result.proxyConfig ? {
-            proxy_url: result.proxyConfig.proxyUrl,
-            resolution: {
-              source: result.proxyConfig.source,
-              env_var_used: result.proxyConfig.envVarUsed,
-              original_value: result.proxyConfig.originalValue,
-              global_proxy: result.proxyConfig.globalProxy,
-              app_env: result.proxyConfig.appEnv,
-            }
-          } : null,
-          network: result.networkConfig,
-          config: result.config, // Raw merged config
-        };
+        return formatRuntimeConfig(result);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
       }
@@ -345,29 +425,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       try {
         const factory = new YamlConfigFactory(config);
         const result = await factory.computeAll(`services.${name}`, undefined, request);
-
-        return {
-          config_type: result.configType,
-          config_name: result.configName,
-          auth: result.authConfig ? safeAuthResponse(result.authConfig, result.headers) : null,
-          auth_error: result.authError ? {
-            message: result.authError.message,
-            code: result.authError.code,
-            details: result.authError.details
-          } : null,
-          proxy: result.proxyConfig ? {
-            proxy_url: result.proxyConfig.proxyUrl,
-            resolution: {
-              source: result.proxyConfig.source,
-              env_var_used: result.proxyConfig.envVarUsed,
-              original_value: result.proxyConfig.originalValue,
-              global_proxy: result.proxyConfig.globalProxy,
-              app_env: result.proxyConfig.appEnv,
-            }
-          } : null,
-          network: result.networkConfig,
-          config: result.config,
-        };
+        return formatRuntimeConfig(result);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
       }
@@ -385,29 +443,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       try {
         const factory = new YamlConfigFactory(config);
         const result = await factory.computeAll(`storages.${name}`, undefined, request);
-
-        return {
-          config_type: result.configType,
-          config_name: result.configName,
-          auth: result.authConfig ? safeAuthResponse(result.authConfig, result.headers) : null,
-          auth_error: result.authError ? {
-            message: result.authError.message,
-            code: result.authError.code,
-            details: result.authError.details
-          } : null,
-          proxy: result.proxyConfig ? {
-            proxy_url: result.proxyConfig.proxyUrl,
-            resolution: {
-              source: result.proxyConfig.source,
-              env_var_used: result.proxyConfig.envVarUsed,
-              original_value: result.proxyConfig.originalValue,
-              global_proxy: result.proxyConfig.globalProxy,
-              app_env: result.proxyConfig.appEnv,
-            }
-          } : null,
-          network: result.networkConfig,
-          config: result.config,
-        };
+        return formatRuntimeConfig(result);
       } catch (err) {
         return reply.code(500).send({ error: err.message });
       }

@@ -55,9 +55,30 @@ export class BaseClient {
     private dispatcher?: Dispatcher;
     private authHandler?: AuthHandler;
     private ownDispatcher: boolean = false;
+    private origin: string;
+    private basePath: string;
 
     constructor(config: ClientConfig) {
         this.config = resolveConfig(config);
+
+        // Parse Origin and BasePath to safely support baseUrls with paths (e.g. https://api.com/v1)
+        // undici.Pool only accepts origin, so we must manually prepend basePath to requests.
+        try {
+            const url = new URL(this.config.baseUrl);
+            this.origin = url.origin;
+            this.basePath = url.pathname;
+            // Normalize basePath: remove trailing slash unless it's just root
+            if (this.basePath.endsWith('/') && this.basePath.length > 1) {
+                this.basePath = this.basePath.slice(0, -1);
+            }
+            if (this.basePath === '/') {
+                this.basePath = '';
+            }
+        } catch (e) {
+            // Fallback (e.g. relative URLs? mostly unlikely in this context)
+            this.origin = this.config.baseUrl;
+            this.basePath = '';
+        }
 
         // Setup Auth
         if (this.config.auth) {
@@ -82,7 +103,7 @@ export class BaseClient {
         // If baseUrl is set, we can use a Client optimized for that origin.
 
         // Using a Pool for the base URL is efficient for repeated requests.
-        this.dispatcher = new Pool(this.config.baseUrl, {
+        this.dispatcher = new Pool(this.origin, {
             connect: {
                 timeout: this.config.timeout.connect
             },
@@ -110,7 +131,8 @@ export class BaseClient {
 
         try {
             if (contentType.includes('application/json')) {
-                data = JSON.parse(text);
+                // Handle empty body for JSON content type
+                data = text ? JSON.parse(text) : {};
             } else {
                 data = text;
             }
@@ -153,7 +175,7 @@ export class BaseClient {
         const method = options.method || 'GET';
         // URL handling: passed url is relative path usually, but undici Pool expects path.
         // If baseUrl was used to create Pool, we just pass path.
-        const path = options.url || '/';
+        const reqPath = options.url || '/';
 
         // Headers
         const headers: Record<string, string> = {
@@ -176,7 +198,7 @@ export class BaseClient {
         if (this.authHandler) {
             const context: RequestContext = {
                 method,
-                url: `${this.config.baseUrl}${path.startsWith('/') ? '' : '/'}${path}`,
+                url: `${this.config.baseUrl}${reqPath.startsWith('/') ? '' : '/'}${reqPath}`,
                 headers,
                 body: options.json || body
             };
@@ -196,13 +218,16 @@ export class BaseClient {
 
             // Check for Pool OR MockPool (which behaves like Pool regarding path)
             const isPool = this.dispatcher instanceof Pool || this.dispatcher?.constructor.name === 'MockPool';
-            // For MockAgent/Agent, we should provide the full URL if possible, or path if they are origin-bound? 
-            // MockAgent dispatch logic can be tricky.
-            // Safe bet: If not explicitly a Pool we created, assume full URL is safer or required.
 
-            // However, existing test sets dispatcher: mockAgent. 
-            // mockAgent (MockAgent) is not a Pool.
-            const targetUrl = isPool ? path : `${this.config.baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+            // Calculate effective path including params from baseUrl if any (e.g. /api/v1)
+            // If isPool (bound to origin), we must supply full path /api/v1/users
+            // If !isPool (Agent), we supply full URL https://host/api/v1/users
+
+            const effectivePath = this.basePath
+                ? `${this.basePath}${reqPath.startsWith('/') ? '' : '/'}${reqPath}`
+                : reqPath;
+
+            const targetUrl = isPool ? effectivePath : `${this.origin}${effectivePath.startsWith('/') ? '' : '/'}${effectivePath}`;
 
             // console.log('Requesting:', targetUrl, 'isPool:', isPool);
 
@@ -215,7 +240,7 @@ export class BaseClient {
                 headersTimeout: options.timeout || this.config.timeout.read
             });
 
-            return { response, path };
+            return { response, path: reqPath };
 
         } catch (e) {
             // console.error(`${LOG_PREFIX} Request failed:`, e);

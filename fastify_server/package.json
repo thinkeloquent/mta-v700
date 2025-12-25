@@ -19,7 +19,8 @@
     "@internal/db_connection_postgres": "workspace:*",
     "@internal/db_connection_redis": "workspace:*",
     "@internal/fetch-auth-config": "workspace:*",
-    "@internal/fetch-auth-encoding": "workspace:*"
+    "@internal/fetch-auth-encoding": "workspace:*",
+    "@internal/fetch-client": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0"
