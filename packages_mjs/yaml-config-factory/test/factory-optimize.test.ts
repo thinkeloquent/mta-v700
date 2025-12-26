@@ -1,14 +1,16 @@
 
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { YamlConfigFactory, ComputeOptions } from '../src/index';
+import { YamlConfigFactory, ComputeOptions } from '../src/index.js';
 import { AppYamlConfig, ProxyResolutionResult } from '@internal/app-yaml-config';
 import { AuthType } from '@internal/fetch-auth-config';
 
 // Mock Dependencies
 const mockAppConfig = {
-    get: jest.fn(),
+    get: jest.fn().mockReturnValue({}),
     getNested: jest.fn(),
-    getLoadResult: jest.fn().mockReturnValue({ appEnv: 'dev', filesLoaded: [] })
+    getLoadResult: jest.fn().mockReturnValue({ appEnv: 'dev', filesLoaded: [] }),
+    getAll: jest.fn().mockReturnValue({}),
+    isInitialized: jest.fn().mockReturnValue(true)
 } as unknown as AppYamlConfig;
 
 const mockFetchAuth = jest.fn();
@@ -57,7 +59,11 @@ describe('YamlConfigFactory Optimization', () => {
     // =========================================================================
 
     describe('compute() - Branch Coverage', () => {
-        it('should compute only auth by default', () => {
+        it('should compute only auth by default', async () => {
+            (mockAppConfig as any).get.mockImplementation((key: string) => {
+                if (key === 'providers') return { test: { some: 'config' } };
+                return {};
+            });
             (mockAppConfig as any).getNested.mockReturnValue({ some: 'config' });
             mockFetchAuth.mockReturnValue({
                 type: AuthType.BEARER,
@@ -65,9 +71,10 @@ describe('YamlConfigFactory Optimization', () => {
                 resolution: { tokenResolver: 'static', resolvedFrom: {}, isPlaceholder: false }
             });
 
-            const result = factory.compute('providers.test');
+            const result = await factory.compute('providers.test');
 
             expect(result.authConfig).toBeDefined();
+            expect(result.configType).toBe('providers');
             expect(result.proxyConfig).toBeUndefined();
             expect(result.networkConfig).toBeUndefined();
             expect(result.config).toBeUndefined();
@@ -76,14 +83,19 @@ describe('YamlConfigFactory Optimization', () => {
             expectLogContains(consoleSpy.debug, 'compute: Completed');
         });
 
-        it('should compute all sections when requested', () => {
+        it('should compute all sections when requested', async () => {
             // Setup Mocks
-            (mockAppConfig as any).getNested.mockImplementation((type: string, name: string) => ({
-                some: 'config',
-                proxy_url: false
-            }));
-            (mockAppConfig as any).get.mockReturnValue({
-                network: { default_environment: 'prod' }
+            (mockAppConfig as any).get.mockImplementation((key: string) => {
+                if (key === 'providers') return { test: { some: 'config', proxy_url: false } };
+                if (key === 'network') return { default_environment: 'prod' };
+                return {};
+            });
+            (mockAppConfig as any).getNested.mockImplementation((keys: string[]) => {
+                const [type, name] = keys;
+                return {
+                    some: 'config',
+                    proxy_url: false
+                };
             });
             mockFetchAuth.mockReturnValue({
                 type: AuthType.NONE,
@@ -91,7 +103,7 @@ describe('YamlConfigFactory Optimization', () => {
                 resolution: { tokenResolver: 'static', resolvedFrom: {}, isPlaceholder: false }
             });
 
-            const result = factory.compute('providers.test', {
+            const result = await factory.compute('providers.test', {
                 includeHeaders: true,
                 includeProxy: true,
                 includeNetwork: true,
@@ -114,24 +126,24 @@ describe('YamlConfigFactory Optimization', () => {
     // =========================================================================
 
     describe('compute() - Boundary Values', () => {
-        it('should throw Error for empty path', () => {
-            expect(() => factory.compute('')).toThrow('Path cannot be empty');
+        it('should throw Error for empty path', async () => {
+            await expect(factory.compute('')).rejects.toThrow('Path cannot be empty');
             expectLogContains(consoleSpy.error, 'compute failed');
         });
 
-        it('should throw Error for malformed path', () => {
-            expect(() => factory.compute('providers')).toThrow("Invalid path format 'providers'");
+        it('should throw Error for malformed path', async () => {
+            await expect(factory.compute('providers')).rejects.toThrow("Invalid path format 'providers'");
         });
 
-        it('should throw Error for invalid config type', () => {
-            expect(() => factory.compute('invalid.test')).toThrow("Invalid config type 'invalid'");
+        it('should throw Error for invalid config type', async () => {
+            await expect(factory.compute('invalid.test')).rejects.toThrow("Invalid config type 'invalid'");
         });
 
-        it('should throw Error if config not found', () => {
+        it('should throw Error if config not found', async () => {
             (mockAppConfig as any).getNested.mockReturnValue(undefined);
             (mockAppConfig as any).get.mockReturnValue(undefined);
 
-            expect(() => factory.compute('providers.missing')).toThrow("Configuration not found for 'providers.missing'");
+            await expect(factory.compute('providers.missing')).rejects.toThrow("Configuration not found for 'providers.missing'");
         });
     });
 

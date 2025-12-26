@@ -1,32 +1,41 @@
 
 import type { AppYamlConfig } from '@internal/app-yaml-config';
 import { fetchAuthConfig } from '@internal/fetch-auth-config';
-import { encodeAuth, AuthCredentials } from '@internal/fetch-auth-encoding';
+import { encodeAuth, type AuthCredentials } from '@internal/fetch-auth-encoding';
 import {
     resolveProviderProxy,
-    ProxyResolutionResult,
+    type ProxyResolutionResult,
     getProvider,
     getService,
     getStorage
 } from '@internal/app-yaml-config';
-import {
+import type {
     ConfigPath,
     ComputeOptions,
     ComputeResult,
     NetworkConfig,
     ComputedAuthConfig
 } from './types.js';
+import { ContextBuilder, type TemplateContext } from './context.js';
+import { ContextResolver } from './context-resolver.js';
 
 export * from './types.js';
 export * from './helpers.js';
+export * from './context.js';
+export * from './compute-registry.js';
+export * from './context-resolver.js';
 
 export class YamlConfigFactory {
+    private startupContext: TemplateContext;
+
     constructor(
         private config: AppYamlConfig,
         private fetchAuthConfigFn = fetchAuthConfig,
         private encodeAuthFn = encodeAuth,
         private logger: Console = console
-    ) { }
+    ) {
+        this.startupContext = ContextBuilder.buildStartupContext(config);
+    }
 
     private logDebug(message: string, ...args: any[]): void {
         this.logger.debug(`YamlConfigFactory: ${message}`, ...args);
@@ -45,6 +54,14 @@ export class YamlConfigFactory {
         try {
             const [configType, configName] = this.parsePath(path);
 
+            // Build full context for template/function resolution
+            let contextResolver: ContextResolver | undefined;
+            if (options.resolveTemplates !== false) { // Default to true
+                const requestCtx = ContextBuilder.buildRequestContext(request);
+                const fullContext = ContextBuilder.mergeContexts(this.startupContext, requestCtx);
+                contextResolver = new ContextResolver(fullContext, request);
+            }
+
             // 1. Auth Resolution
             let authResult: ComputedAuthConfig = {
                 authConfig: null as any
@@ -52,7 +69,13 @@ export class YamlConfigFactory {
 
             let authError: any = null;
             try {
-                authResult = await this.computeAuthInternal(configType, configName, options.includeHeaders, request);
+                authResult = await this.computeAuthInternal(
+                    configType,
+                    configName,
+                    options.includeHeaders,
+                    request,
+                    contextResolver
+                );
             } catch (err) {
                 if (options.suppressAuthErrors) {
                     this.logError('compute: Auth resolution failed but suppressed', err);
@@ -85,7 +108,7 @@ export class YamlConfigFactory {
             // 4. Raw Config
             if (options.includeConfig) {
                 this.logDebug('compute: Retrieving raw config');
-                result.config = this.computeConfig(path);
+                result.config = await this.computeConfig(path, contextResolver);
             }
 
             this.logDebug('compute: Completed', {
@@ -150,7 +173,7 @@ export class YamlConfigFactory {
     /**
      * Get fully resolved configuration with env vars applied.
      */
-    computeConfig(path: string): Record<string, any> {
+    async computeConfig(path: string, contextResolver?: ContextResolver): Promise<Record<string, any>> {
         this.logDebug('computeConfig: Starting', { path });
 
         // Parse the path to get type and name (before storage->storages mapping)
@@ -160,21 +183,36 @@ export class YamlConfigFactory {
         }
         const [pathType, configName] = parts;
 
-        // Use the appropriate resolver for env var resolution
+        // Step 1: Use the appropriate resolver for env var resolution
+        let config: Record<string, any> = {};
         if (pathType === 'providers') {
             const result = getProvider(configName, this.config);
-            return result.config;
+            config = result.config;
         } else if (pathType === 'services') {
             const result = getService(configName, this.config);
-            return result.config;
+            config = result.config;
         } else if (pathType === 'storages') {
             const result = getStorage(configName, this.config);
-            return result.config;
+            config = result.config;
+        } else {
+            // Fallback to raw config
+            const [configType, name] = this.parsePath(path);
+            config = this.getRawConfig(configType, name, true);
         }
 
-        // Fallback to raw config
-        const [configType, name] = this.parsePath(path);
-        return this.getRawConfig(configType, name, true);
+        // Step 2: Apply overwrite_from_context (NEW - async)
+        if (contextResolver) {
+            const [configType, name] = this.parsePath(path);
+            const rawConfig = this.getRawConfig(configType, name, false);
+            const contextMeta = rawConfig.overwrite_from_context;
+            if (contextMeta) {
+                config = await contextResolver.applyContextOverwrite(config, contextMeta);
+                // Remove the meta key to clean up result
+                delete config.overwrite_from_context;
+            }
+        }
+
+        return config;
     }
 
     /**
@@ -221,9 +259,6 @@ export class YamlConfigFactory {
 
     private getRawConfig(configType: ConfigPath, configName: string, removeMetaKeys: boolean): Record<string, any> {
         // Access raw config using public API if available or fallback logic
-        // Assuming AppYamlConfig now supports get_provider/service/storage internally logic
-        // or we use the getNested which works on the underlying data.
-
         const raw = (this.config as any).getNested
             ? (this.config as any).getNested([configType, configName])
             : (this.config as any).get(configType)?.[configName];
@@ -237,6 +272,7 @@ export class YamlConfigFactory {
             const clean = { ...raw };
             delete clean.overwrite_from_env;
             delete clean.fallbacks_from_env;
+            delete clean.overwrite_from_context;
             return clean;
         }
 
@@ -247,11 +283,20 @@ export class YamlConfigFactory {
         configType: ConfigPath,
         configName: string,
         includeHeaders: boolean = false,
-        request?: any
+        request?: any,
+        contextResolver?: ContextResolver
     ): Promise<ComputedAuthConfig> {
         this.logDebug('computeAuthInternal', { type: configType, name: configName });
 
-        const rawConfig = this.getRawConfig(configType, configName, false);
+        let rawConfig = this.getRawConfig(configType, configName, false);
+
+        // Apply overwrite_from_context before calculating auth
+        if (contextResolver) {
+            const contextMeta = rawConfig.overwrite_from_context;
+            if (contextMeta) {
+                rawConfig = await contextResolver.applyContextOverwrite(rawConfig, contextMeta);
+            }
+        }
 
         const authConfig = await this.fetchAuthConfigFn({
             providerName: configName,

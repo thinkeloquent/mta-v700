@@ -12,6 +12,8 @@ from app_yaml_config import (
 )
 from fetch_auth_config import fetch_auth_config, AuthConfig
 from fetch_auth_encoding import encode_auth
+from .context import ContextBuilder, TemplateContext
+from .context_resolver import ContextResolver
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +40,7 @@ class ComputeOptions:
     include_config: bool = False
     suppress_auth_errors: bool = False
     environment: Optional[str] = None
+    resolve_templates: bool = True
 
 
 @dataclass
@@ -64,6 +67,7 @@ class YamlConfigFactory:
         self._config = config
         self._fetch_auth_config_fn = fetch_auth_config_fn
         self._encode_auth_fn = encode_auth_fn
+        self._startup_context = ContextBuilder.build_startup_context(config)
 
     async def compute(
         self,
@@ -80,12 +84,25 @@ class YamlConfigFactory:
         try:
             config_type, config_name = self._parse_path(path)
 
+            # Build full context for template/function resolution
+            context_resolver = None
+            if opts.resolve_templates:
+                request_ctx = ContextBuilder.build_request_context(request)
+                full_context = ContextBuilder.merge_contexts(self._startup_context, request_ctx)
+                context_resolver = ContextResolver(full_context, request)
+
             # 1. Auth Resolution
             auth_result = {}
             auth_error = None
             
             try:
-                auth_result = await self._compute_auth_internal(config_type, config_name, opts.include_headers, request)
+                auth_result = await self._compute_auth_internal(
+                    config_type, 
+                    config_name, 
+                    opts.include_headers, 
+                    request,
+                    context_resolver
+                )
             except Exception as e:
                 if opts.suppress_auth_errors:
                     logger.error(f"compute: Auth resolution failed but suppressed: {e}")
@@ -114,7 +131,7 @@ class YamlConfigFactory:
             # 4. Raw Config
             if opts.include_config:
                 logger.debug("compute: Retrieving raw config")
-                result.config = self.compute_config(path)
+                result.config = await self.compute_config(path, context_resolver)
 
             logger.debug(f"compute: Completed type={config_type} name={config_name}")
             return result
@@ -167,24 +184,34 @@ class YamlConfigFactory:
         logger.debug("compute_network: Completed")
         return result
 
-    def compute_config(self, path: str) -> Dict[str, Any]:
+    async def compute_config(self, path: str, context_resolver: Optional[ContextResolver] = None) -> Dict[str, Any]:
         """Get fully resolved configuration with env vars applied."""
         logger.debug(f"compute_config: Starting path={path}")
         config_type, config_name = self._parse_path(path)
 
-        # Use the appropriate resolver for env var resolution
+        # Step 1: Get config with overwrite_from_env applied (existing logic)
+        config = {}
         if config_type == 'providers':
             result = get_provider(config_name, self._config)
-            return result.config
+            config = result.config
         elif config_type == 'services':
             result = get_service(config_name, self._config)
-            return result.config
+            config = result.config
         elif config_type == 'storage':
             result = get_storage(config_name, self._config)
-            return result.config
+            config = result.config
         else:
             # Fallback to raw config
-            return self._get_raw_config(config_type, config_name, remove_meta_keys=True)
+            config = self._get_raw_config(config_type, config_name, remove_meta_keys=True)
+
+        # Step 2: Apply overwrite_from_context (NEW - async for function resolution)
+        if context_resolver:
+            raw_config = self._get_raw_config(config_type, config_name, remove_meta_keys=False)
+            context_meta = raw_config.get('overwrite_from_context', {})
+            if context_meta:
+                config = await context_resolver.apply_context_overwrite(config, context_meta)
+
+        return config
 
     async def compute_all(
         self,
@@ -238,6 +265,7 @@ class YamlConfigFactory:
             clean = raw.copy()
             clean.pop('overwrite_from_env', None)
             clean.pop('fallbacks_from_env', None)
+            clean.pop('overwrite_from_context', None)
             return clean
 
         return raw
@@ -247,12 +275,19 @@ class YamlConfigFactory:
         config_type: str,
         config_name: str,
         include_headers: bool = False,
-        request: Any = None
+        request: Any = None,
+        context_resolver: Optional[ContextResolver] = None
     ) -> Dict[str, Any]:
         logger.debug(f"compute_auth_internal type={config_type} name={config_name}")
         
         raw_config = self._get_raw_config(config_type, config_name, remove_meta_keys=False)
         
+        # Apply overwrite_from_context before calculating auth
+        if context_resolver:
+            context_meta = raw_config.get('overwrite_from_context', {})
+            if context_meta:
+                raw_config = await context_resolver.apply_context_overwrite(raw_config, context_meta)
+
         auth_config = await self._fetch_auth_config_fn(config_name, raw_config, request)
         
         result = {"auth_config": auth_config}

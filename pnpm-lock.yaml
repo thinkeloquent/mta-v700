@@ -443,6 +443,9 @@ importers:
       '@internal/proxy-config':
         specifier: workspace:*
         version: link:../proxy-config
+      '@internal/runtime-template-resolver':
+        specifier: workspace:*
+        version: link:../runtime-template-resolver
     devDependencies:
       '@types/jest':
         specifier: ^29.5.0

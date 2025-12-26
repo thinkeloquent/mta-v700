@@ -1,8 +1,7 @@
 
-import type { AppYamlConfig } from '@internal/app-yaml-config';
-import { fetchAuthConfig, AuthConfig } from '@internal/fetch-auth-config';
-import { encodeAuth, AuthCredentials } from '@internal/fetch-auth-encoding';
-import { ProxyResolutionResult } from '@internal/app-yaml-config';
+
+import type { AuthConfig } from '@internal/fetch-auth-config';
+import type { ProxyResolutionResult } from '@internal/app-yaml-config';
 
 export type ConfigPath = 'providers' | 'services' | 'storages';
 
@@ -25,6 +24,7 @@ export interface ComputeOptions {
     includeConfig?: boolean;
     environment?: string;
     suppressAuthErrors?: boolean;
+    resolveTemplates?: boolean;
 }
 
 export interface ComputeResult {

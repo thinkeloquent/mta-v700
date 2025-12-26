@@ -1,4 +1,4 @@
-import { ComputeResult } from './types.js';
+import type { ComputeResult } from './types.js';
 
 export function createRuntimeConfigResponse(result: ComputeResult): Record<string, any> {
     const response: Record<string, any> = {

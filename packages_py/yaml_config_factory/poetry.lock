@@ -24,8 +24,10 @@ develop = true
 
 [package.dependencies]
 deepmerge = "^2.0"
+fetch-auth-config = {path = "../fetch_auth_config", develop = true}
+fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
 python-dotenv = "^1.0.0"
-pyyaml = "^6.0"
+pyyaml = "^6.0.3"
 
 [package.source]
 type = "directory"
@@ -142,7 +144,7 @@ files = []
 develop = true
 
 [package.dependencies]
-pydantic = ">=2.0.0"
+pydantic = "^2.0.0"
 
 [package.source]
 type = "directory"
@@ -342,6 +344,26 @@ pygments = ">=2.7.2"
 dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "requests", "setuptools", "xmlschema"]
 
 [[package]]
+name = "pytest-asyncio"
+version = "1.3.0"
+description = "Pytest support for asyncio"
+optional = false
+python-versions = ">=3.10"
+groups = ["dev"]
+files = [
+    {file = "pytest_asyncio-1.3.0-py3-none-any.whl", hash = "sha256:611e26147c7f77640e6d0a92a38ed17c3e9848063698d5c93d5aa7aa11cebff5"},
+    {file = "pytest_asyncio-1.3.0.tar.gz", hash = "sha256:d7f52f36d231b80ee124cd216ffb19369aa168fc10095013c6b014a34d3ee9e5"},
+]
+
+[package.dependencies]
+pytest = ">=8.2,<10"
+typing-extensions = {version = ">=4.12", markers = "python_version < \"3.13\""}
+
+[package.extras]
+docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1)"]
+testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
+
+[[package]]
 name = "python-dotenv"
 version = "1.2.1"
 description = "Read key-value pairs from a .env file and set them as environment variables"
@@ -440,16 +462,31 @@ files = [
 ]
 
 [[package]]
+name = "runtime-template-resolver"
+version = "1.0.0"
+description = "Safe, lightweight runtime string template replacement with path-based value resolution."
+optional = false
+python-versions = "^3.9"
+groups = ["main"]
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "../runtime_template_resolver"
+
+[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
 optional = false
 python-versions = ">=3.9"
-groups = ["main"]
+groups = ["main", "dev"]
 files = [
     {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
     {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
 ]
+markers = {dev = "python_version < \"3.13\""}
 
 [[package]]
 name = "typing-inspection"
@@ -469,4 +506,4 @@ typing-extensions = ">=4.12.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "3340ad320bb51688d1104d11a0058a7b2f724f775bbfd1605e5d486ac43547c7"
+content-hash = "8190598594c48364c80244380afc48a3f6e0112442f4004ec9eebaa337b2bac7"

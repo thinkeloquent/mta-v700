@@ -14,7 +14,8 @@
         "@internal/app-yaml-config": "workspace:*",
         "@internal/fetch-auth-config": "workspace:*",
         "@internal/fetch-auth-encoding": "workspace:*",
-        "@internal/proxy-config": "workspace:*"
+        "@internal/proxy-config": "workspace:*",
+        "@internal/runtime-template-resolver": "workspace:*"
     },
     "devDependencies": {
         "@types/jest": "^29.5.0",

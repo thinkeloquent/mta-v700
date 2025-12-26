@@ -7,7 +7,8 @@ export default {
         '^(\\.{1,2}/.*)\\.js$': '$1',
         '^@internal/fetch-auth-config$': '<rootDir>/../fetch-auth-config/src/index.ts',
         '^@internal/fetch-auth-encoding$': '<rootDir>/../fetch-auth-encoding/src/index.ts',
-        '^@internal/app-yaml-config$': '<rootDir>/../app-yaml-config/src/index.ts'
+        '^@internal/app-yaml-config$': '<rootDir>/../app-yaml-config/src/index.ts',
+        '^@internal/runtime-template-resolver$': '<rootDir>/../runtime-template-resolver/src/index.ts'
     },
     transform: {
         '^.+\\.tsx?$': [

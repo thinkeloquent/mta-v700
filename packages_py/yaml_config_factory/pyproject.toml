@@ -15,9 +15,11 @@ app-yaml-config = {path = "../app_yaml_config", develop = true}
 fetch-auth-config = {path = "../fetch_auth_config", develop = true}
 fetch-auth-encoding = {path = "../fetch_auth_encoding", develop = true}
 proxy-config = {path = "../proxy_config", develop = true}
+runtime_template_resolver = {path = "../runtime_template_resolver", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
+pytest-asyncio = "^1.3.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
