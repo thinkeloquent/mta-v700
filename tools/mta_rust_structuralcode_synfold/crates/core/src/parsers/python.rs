@@ -144,7 +144,12 @@ impl PythonParser {
                     if node.end_position().row > node.start_position().row {
                         let fold = self.create_fold(node, FoldType::Literal, source);
                         if let Some(mut f) = fold {
-                            f.preview = Some(format!("\"...\" ({} lines)", f.line_count));
+                            f.preview = Some(self.generate_literal_preview(
+                                node,
+                                source,
+                                f.line_count,
+                                config.preview_mode,
+                            ));
                             folds.push(f);
                         }
                     }
@@ -175,8 +180,12 @@ impl PythonParser {
                             {
                                 let fold = self.create_fold(&child, FoldType::DocComment, source);
                                 if let Some(mut f) = fold {
-                                    f.preview =
-                                        Some(format!("\"\"\"...\"\"\" ({} lines)", f.line_count));
+                                    f.preview = Some(self.generate_docstring_preview(
+                                        &child,
+                                        source,
+                                        f.line_count,
+                                        config.preview_mode,
+                                    ));
                                     folds.push(f);
                                 }
                             }
@@ -191,7 +200,12 @@ impl PythonParser {
                     if node.end_position().row > node.start_position().row {
                         let fold = self.create_fold(node, FoldType::ArrayLiteral, source);
                         if let Some(mut f) = fold {
-                            f.preview = Some(format!("[...] ({} lines)", f.line_count));
+                            f.preview = Some(self.generate_array_preview(
+                                node,
+                                source,
+                                f.line_count,
+                                config.preview_mode,
+                            ));
                             folds.push(f);
                         }
                     }
@@ -559,13 +573,8 @@ impl PythonParser {
                 }
             }
             PreviewMode::Source => {
-                let text = self.get_node_text(start_node, source);
-                let first_line = text.lines().next().unwrap_or("");
-                if first_line.len() > 60 {
-                    format!("{}...", &first_line[..57])
-                } else {
-                    first_line.to_string()
-                }
+                // Return full source of the import block
+                self.get_import_block_source(start_node, source)
             }
         }
     }
@@ -590,9 +599,8 @@ impl PythonParser {
                 }
             }
             PreviewMode::Source => {
-                let text = self.get_node_text(node, source);
-                let lines: Vec<&str> = text.lines().take(2).collect();
-                lines.join(" ").chars().take(80).collect()
+                // Return full source of the function
+                self.get_node_text(node, source)
             }
         }
     }
@@ -617,15 +625,83 @@ impl PythonParser {
                 }
             }
             PreviewMode::Source => {
-                let text = self.get_node_text(node, source);
-                let preview: String = text.chars().take(60).collect();
-                if text.len() > 60 {
-                    format!("{}...", preview)
-                } else {
-                    preview
-                }
+                // Return full source of the dict/object
+                self.get_node_text(node, source)
             }
         }
+    }
+
+    fn generate_literal_preview(
+        &self,
+        node: &Node,
+        source: &str,
+        line_count: usize,
+        mode: PreviewMode,
+    ) -> String {
+        match mode {
+            PreviewMode::Minimal | PreviewMode::Names | PreviewMode::Flow => {
+                format!("\"...\" ({} lines)", line_count)
+            }
+            PreviewMode::Source => {
+                self.get_node_text(node, source)
+            }
+        }
+    }
+
+    fn generate_docstring_preview(
+        &self,
+        node: &Node,
+        source: &str,
+        line_count: usize,
+        mode: PreviewMode,
+    ) -> String {
+        match mode {
+            PreviewMode::Minimal | PreviewMode::Names | PreviewMode::Flow => {
+                format!("\"\"\"...\"\"\" ({} lines)", line_count)
+            }
+            PreviewMode::Source => {
+                self.get_node_text(node, source)
+            }
+        }
+    }
+
+    fn generate_array_preview(
+        &self,
+        node: &Node,
+        source: &str,
+        line_count: usize,
+        mode: PreviewMode,
+    ) -> String {
+        match mode {
+            PreviewMode::Minimal | PreviewMode::Names | PreviewMode::Flow => {
+                format!("[...] ({} lines)", line_count)
+            }
+            PreviewMode::Source => {
+                self.get_node_text(node, source)
+            }
+        }
+    }
+
+    /// Get the full source text of an import block
+    fn get_import_block_source(&self, start_node: &Node, source: &str) -> String {
+        let mut end_node = start_node.clone();
+
+        // Walk forward to find the last import in the block
+        let mut next = start_node.next_sibling();
+        while let Some(ns) = next {
+            if ns.kind() == "import_statement" || ns.kind() == "import_from_statement" {
+                end_node = ns;
+                next = ns.next_sibling();
+            } else if ns.kind() == "comment" {
+                next = ns.next_sibling();
+            } else {
+                break;
+            }
+        }
+
+        let start_byte = start_node.start_byte();
+        let end_byte = end_node.end_byte();
+        source[start_byte..end_byte].to_string()
     }
 }
 

@@ -55,6 +55,21 @@ expose_yaml_config_storage:
 # proxy_url: null (or missing): typically means "no override". In this case, the ProviderClientFactory falls back to the merged network configuration. If the global config has network.proxy_urls set (like in server.dev.yaml), null would result in inheriting that global proxy.
 
 providers:
+  gemini_openai_v2:
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    model: "gemini-2.0-flash"
+    health_endpoint: "/models"
+    endpoint_api_key: null
+    endpoint_auth_type: "bearer"         # bearer, basic, x-api-key, custom
+    endpoint_auth_token_resolver: "request"        # static (default), startup, request
+    overwrite_from_env:
+      endpoint_api_key: ["GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY"]
+    proxy_url: false  # Disabled - no proxy running
+    client:
+      # Override timeout for this provider only
+      timeout_seconds: 120.0
+      timeout_ms: 120000
+
   gemini_openai:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
     model: "gemini-2.0-flash"

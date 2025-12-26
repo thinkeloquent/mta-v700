@@ -78,6 +78,9 @@ mta_rust_structuralcode_synfold list src/main.py --format summary
 ```bash
 # Get fold statistics for a project
 mta_rust_structuralcode_synfold analyze ./fastapi_server/ --format json --output output.json
+
+mta_rust_structuralcode_synfold analyze ./fastapi_server/ --format json --output output.json --preview-mode source
+
 ```
 
 ## Options
