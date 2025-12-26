@@ -211,6 +211,16 @@ class YamlConfigFactory:
             if context_meta:
                 config = await context_resolver.apply_context_overwrite(config, context_meta)
 
+            # Cleanup meta key from result
+            if isinstance(config, dict) and 'overwrite_from_context' in config:
+                # We need to copy if we want to avoid mutating cached config? 
+                # config came from get_provider which returns deep merged copy usually?
+                # But safer to pop.
+                # However, if config is reused, mutating it is bad.
+                # deep_merge returns a deepcopy. So config is a new object. safe to mutate.
+                config.pop('overwrite_from_context', None)
+
+
         return config
 
     async def compute_all(

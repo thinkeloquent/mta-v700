@@ -7,6 +7,7 @@
 # =============================================================================
 expose_yaml_config_provider:
   - gemini_openai
+  - gemini_openai_v2
   - openai
   - anthropic
   - figma
@@ -27,6 +28,7 @@ expose_yaml_config_compute_auth:
     - "anthropic"
     - "openai"
     - "gemini_openai"
+    - "gemini_openai_v2"
   services:
     - "confluence"
     - "jira"
@@ -62,13 +64,26 @@ providers:
     endpoint_api_key: null
     endpoint_auth_type: "bearer"         # bearer, basic, x-api-key, custom
     endpoint_auth_token_resolver: "request"        # static (default), startup, request
-    overwrite_from_env:
-      endpoint_api_key: ["GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY"]
     proxy_url: false  # Disabled - no proxy running
     client:
       # Override timeout for this provider only
       timeout_seconds: 120.0
       timeout_ms: 120000
+    headers:
+      X-App-Name: null
+      X-App-Version: null
+      X-Request-Id: null
+      X-Computed-Token: null
+    # Existing: env var substitution for null values
+    overwrite_from_env:
+      endpoint_api_key: ["GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY"]
+    # NEW: context-based template and function resolution
+    overwrite_from_context:
+      headers:
+        X-App-Name: "{{app.name}}"
+        X-App-Version: "{{app.version}}"
+        X-Request-Id: "{{request.headers.x-request-id}}"
+        X-Computed-Token: "{{fn:compute_gemini_v2_token}}"
 
   gemini_openai:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
