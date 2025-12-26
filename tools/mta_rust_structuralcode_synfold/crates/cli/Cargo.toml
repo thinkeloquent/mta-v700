@@ -1,22 +1,21 @@
 [package]
-name = "mta-rust-mapimports"
+name = "synfold"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "CLI tool for mapping imports in Python and Node.js/TypeScript projects"
+description = "CLI tool for structural code folding in Python and Node.js/TypeScript projects"
 
 [[bin]]
-name = "mapimports"
+name = "mta_rust_structuralcode_synfold"
 path = "src/main.rs"
 
 [dependencies]
-mta-rust-mapimports-core = { path = "../core", version = "0.1.0" }
+synfold-core = { path = "../core", version = "0.1.0" }
 clap.workspace = true
 indicatif.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
 anyhow.workspace = true
-colored = "2.0"
-
+atty.workspace = true

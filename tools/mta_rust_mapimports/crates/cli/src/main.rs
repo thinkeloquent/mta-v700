@@ -1,5 +1,6 @@
 use clap::{Parser, ValueEnum};
 use indicatif::{ProgressBar, ProgressStyle};
+use colored::control;
 use mta_rust_mapimports_core::{
     format_output, format_output_grouped, ImportScanner, Language, OutputFormat, ScanConfig,
 };
@@ -153,6 +154,10 @@ fn main() -> anyhow::Result<()> {
     };
 
     // Format output (grouped by default, flat with --flat flag)
+    if args.output.is_some() {
+        control::set_override(false);
+    }
+
     let output = if args.flat {
         format_output(&filtered_result, args.format.into())?
     } else {
@@ -161,6 +166,7 @@ fn main() -> anyhow::Result<()> {
 
     // Write output
     if let Some(path) = args.output {
+
         fs::write(&path, &output)?;
         if args.verbose {
             eprintln!("Output written to: {}", path.display());

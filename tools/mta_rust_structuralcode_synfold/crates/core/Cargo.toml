@@ -1,11 +1,11 @@
 [package]
-name = "mta-rust-mapimports-core"
+name = "synfold-core"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Core library for import mapping and dependency analysis"
+description = "Core library for structural code folding using Tree-sitter AST"
 exclude = ["Cargo.lock"]
 
 [dependencies]
@@ -13,6 +13,7 @@ tree-sitter.workspace = true
 tree-sitter-python.workspace = true
 tree-sitter-javascript.workspace = true
 tree-sitter-typescript.workspace = true
+ropey.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
@@ -25,8 +26,8 @@ anyhow.workspace = true
 rayon.workspace = true
 regex.workspace = true
 chrono.workspace = true
-colored = "2.0"
-
+termcolor.workspace = true
+atty.workspace = true
 
 [dev-dependencies]
 tempfile = "3.8"

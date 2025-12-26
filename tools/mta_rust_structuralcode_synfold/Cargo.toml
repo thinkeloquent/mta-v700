@@ -1,0 +1,56 @@
+[workspace]
+members = [
+    "crates/core",
+    "crates/cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["MTA Tools Team"]
+license = "MIT"
+repository = "https://github.com/your-org/mta-v700"
+description = "A structural code folding utility for Python and Node.js/TypeScript using Tree-sitter AST analysis"
+
+[workspace.dependencies]
+# Tree-sitter for AST parsing
+tree-sitter = "0.24"
+tree-sitter-python = "0.23"
+tree-sitter-javascript = "0.23"
+tree-sitter-typescript = "0.23"
+
+# Text buffer
+ropey = "1.6"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# CLI
+clap = { version = "4.4", features = ["derive"] }
+indicatif = "0.17"
+
+# File system traversal with gitignore support
+walkdir = "2.4"
+ignore = "0.4"
+globset = "0.4"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Parallelism
+rayon = "1.8"
+
+# Regex for pattern matching
+regex = "1.10"
+
+# Chrono for timestamps
+chrono = { version = "0.4", features = ["serde"] }
+
+# Terminal colors
+termcolor = "1.4"
+atty = "0.2"
