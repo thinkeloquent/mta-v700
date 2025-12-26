@@ -1,0 +1,24 @@
+[package]
+name = "mta_breadcrumbs"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Enterprise-grade CLI for structural code navigation - breadcrumbs and outlines"
+
+[[bin]]
+name = "mta-breadcrumbs"
+path = "src/main.rs"
+
+[dependencies]
+mta_breadcrumbs_core = { path = "../core" }
+
+clap.workspace = true
+indicatif.workspace = true
+
+anyhow.workspace = true
+colored.workspace = true
+atty.workspace = true
+
+serde_json.workspace = true
+serde_yaml.workspace = true

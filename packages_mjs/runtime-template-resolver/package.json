@@ -1,0 +1,23 @@
+{
+    "name": "@internal/runtime-template-resolver",
+    "version": "1.0.0",
+    "description": "Safe, lightweight runtime string template replacement with path-based value resolution.",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "lint": "eslint src/**/*.ts",
+        "example:basic": "node examples/basic-usage.mjs",
+        "example:fastify": "node examples/fastify-example.mjs"
+    },
+    "devDependencies": {
+        "@types/jest": "^29.5.0",
+        "@types/node": "^20.0.0",
+        "jest": "^29.7.0",
+        "ts-jest": "^29.1.0",
+        "typescript": "^5.0.0"
+    }
+}

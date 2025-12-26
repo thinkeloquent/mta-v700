@@ -1,8 +1,5 @@
 [workspace]
-members = [
-    "crates/core",
-    "crates/cli",
-]
+members = ["crates/core", "crates/cli"]
 resolver = "2"
 
 [workspace.package]
@@ -10,30 +7,26 @@ version = "0.1.0"
 edition = "2021"
 authors = ["MTA Tools Team"]
 license = "MIT"
-repository = "https://github.com/your-org/mta-v700"
-description = "A structural code folding utility for Python and Node.js/TypeScript using Tree-sitter AST analysis"
+repository = "https://github.com/mta-tools/mta_rust_breadcrumbs"
+description = "Enterprise-grade structural code navigation CLI - breadcrumbs and outlines for Python and Node.js"
 
 [workspace.dependencies]
-# Tree-sitter for AST parsing
+# Tree-sitter for resilient AST parsing
 tree-sitter = "0.26"
 tree-sitter-python = "0.25"
 tree-sitter-javascript = "0.25"
 tree-sitter-typescript = "0.23"
 
-# Text buffer
-ropey = "1.6"
-
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
-toml = "0.9"
 
 # CLI
 clap = { version = "4.4", features = ["derive"] }
 indicatif = "0.18"
 
-# File system traversal with gitignore support
+# File traversal
 walkdir = "2.4"
 ignore = "0.4"
 globset = "0.4"
@@ -45,12 +38,20 @@ anyhow = "1.0"
 # Parallelism
 rayon = "1.8"
 
-# Regex for pattern matching
+# Utilities
 regex = "1.10"
-
-# Chrono for timestamps
 chrono = { version = "0.4", features = ["serde"] }
 
-# Terminal colors
+# Text handling
+ropey = "1.6"
+
+# ANSI colors
 termcolor = "1.4"
 atty = "0.2"
+colored = "3.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

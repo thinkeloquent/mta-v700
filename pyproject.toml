@@ -46,6 +46,7 @@ fetch-auth-encoding = {path = "packages_py/fetch_auth_encoding", develop = true}
 fetch-client = {path = "packages_py/fetch_client", develop = true}
 proxy-config = {path = "packages_py/proxy_config", develop = true}
 proxy-dispatcher = {path = "packages_py/proxy_dispatcher", develop = true}
+runtime-template-resolver = {path = "packages_py/runtime_template_resolver", develop = true}
 vault-file = {path = "packages_py/vault_file", develop = true}
 yaml-config-factory = {path = "packages_py/yaml_config_factory", develop = true}
 

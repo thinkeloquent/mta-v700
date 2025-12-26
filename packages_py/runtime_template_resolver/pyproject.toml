@@ -1,0 +1,20 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "runtime_template_resolver"
+version = "1.0.0"
+description = "Safe, lightweight runtime string template replacement with path-based value resolution."
+authors = ["Admin <admin@example.com>"]
+packages = [{include = "runtime_template_resolver", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
