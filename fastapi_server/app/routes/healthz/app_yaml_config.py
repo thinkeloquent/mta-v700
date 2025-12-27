@@ -7,22 +7,22 @@ from fetch_auth_config import AuthConfig
 from fetch_auth_encoding import encode_auth
 from yaml_config_factory import YamlConfigFactory, ComputeOptions
 
-def _build_credentials(auth_config: AuthConfig) -> dict:
-    """Build credentials dict for encode_auth from AuthConfig."""
-    creds = {}
-    if auth_config.token:
-        creds['token'] = auth_config.token
-    if auth_config.username:
-        creds['username'] = auth_config.username
-    if auth_config.password:
-        creds['password'] = auth_config.password
-    if auth_config.email:
-        creds['email'] = auth_config.email
-    if auth_config.header_name:
-        creds['header_key'] = auth_config.header_name
-    if auth_config.header_value:
-        creds['header_value'] = auth_config.header_value
-    return creds
+# def _build_credentials(auth_config: AuthConfig) -> dict:
+#     """Build credentials dict for encode_auth from AuthConfig."""
+#     creds = {}
+#     if auth_config.token:
+#         creds['token'] = auth_config.token
+#     if auth_config.username:
+#         creds['username'] = auth_config.username
+#     if auth_config.password:
+#         creds['password'] = auth_config.password
+#     if auth_config.email:
+#         creds['email'] = auth_config.email
+#     if auth_config.header_name:
+#         creds['header_key'] = auth_config.header_name
+#     if auth_config.header_value:
+#         creds['header_value'] = auth_config.header_value
+#     return creds
 
 def _mask_value(value: str, visible_chars: int = 20) -> str:
     """Mask a secret value for safe display."""
@@ -229,8 +229,10 @@ async def get_provider_fetch_status(
             "latency_ms": result.latency_ms,
             "timestamp": result.timestamp,
             "request": result.request,
+            "method": result.request.get("method"),  # Explicitly expose method
             "response": result.response,
             "config_used": formatted_config,
+            "fetch_option_used": result.fetch_option_used,
             "error": result.error,
         }
 

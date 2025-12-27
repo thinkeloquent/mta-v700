@@ -44,20 +44,33 @@ class FetchStatusChecker:
         # Build full URL for display
         full_url = f"{base_url.rstrip('/')}/{health_endpoint.lstrip('/')}"
 
+        method = self._resolve_method()
         request_info = {
-            "method": "GET",
+            "method": method,
             "url": full_url,
             "timeout_seconds": self.timeout_seconds,
         }
 
-        config_used = self._build_config_used(health_endpoint)
+        config_used = self._build_config_used(health_endpoint, method)
+
+        # Build fetch_option_used before making request
+        config = getattr(self.runtime_config, "config", None) or {}
+        pre_computed_headers = getattr(self.runtime_config, "headers", None) or {}
+        config_headers = config.get("headers") or {}
+        merged_headers = {**config_headers, **pre_computed_headers}
+
+        fetch_option_used = self._build_fetch_option_used(
+            method=method,
+            full_url=full_url,
+            merged_headers=merged_headers,
+        )
 
         client: Optional[FetchClient] = None
 
         try:
             client = self._create_client()
             await client.connect()
-            response = await client.get(health_endpoint)
+            response = await client.request(method, health_endpoint)
 
             latency_ms = (time.perf_counter() - start_time) * 1000
 
@@ -87,6 +100,7 @@ class FetchStatusChecker:
                     "body_preview": body_preview,
                 },
                 config_used=config_used,
+                fetch_option_used=fetch_option_used,
             )
 
         except TimeoutException as e:
@@ -128,6 +142,7 @@ class FetchStatusChecker:
                 timestamp=timestamp,
                 request=request_info,
                 config_used=config_used,
+                fetch_option_used=fetch_option_used,
                 error={
                     "type": type(e).__name__,
                     "message": str(e),
@@ -143,16 +158,22 @@ class FetchStatusChecker:
 
     def _resolve_health_endpoint(self) -> str:
         """Resolve the health check endpoint."""
+        endpoint: str
         if self.endpoint_override:
             endpoint = self.endpoint_override
-        else:
-            config = getattr(self.runtime_config, "config", None) or {}
-            if config.get("health_endpoint"):
-                endpoint = config["health_endpoint"]
+        elif self.runtime_config.config.get("health_endpoint"):
+            health_conf = self.runtime_config.config["health_endpoint"]
+            if isinstance(health_conf, dict):
+                # If dict, expect 'path' or 'endpoint' key
+                endpoint = health_conf.get("path") or health_conf.get("endpoint")
+                if not endpoint:
+                     raise ValueError(f"health_endpoint object missing 'path' in provider config for '{self.provider_name}'")
             else:
-                raise ValueError(
-                    f"health_endpoint is required in provider config for '{self.provider_name}'"
-                )
+                endpoint = str(health_conf)
+        else:
+            raise ValueError(
+                f"health_endpoint is required in provider config for '{self.provider_name}'"
+            )
 
         # Replace placeholders
         return self._resolve_placeholders(endpoint)
@@ -175,6 +196,24 @@ class FetchStatusChecker:
                 result = result.replace(placeholder, quote(str(value), safe=""))
 
         return result
+
+    def _resolve_method(self) -> str:
+        """Resolve HTTP method from config, default to GET."""
+        config = getattr(self.runtime_config, "config", None) or {}
+
+        # Check health_endpoint config for method
+        health_endpoint_config = config.get("health_endpoint")
+        if isinstance(health_endpoint_config, dict):
+            method = health_endpoint_config.get("method")
+            if method:
+                return str(method).upper()
+
+        # Fallback to top-level method
+        method = config.get("method")
+        if method:
+            return str(method).upper()
+
+        return "GET"
 
     def _create_client(self) -> FetchClient:
         """Create FetchClient with pre-computed headers from YamlConfigFactory."""
@@ -200,7 +239,7 @@ class FetchStatusChecker:
 
         return FetchClient.create(client_config)
 
-    def _build_config_used(self, health_endpoint: str) -> Dict[str, Any]:
+    def _build_config_used(self, health_endpoint: str, method: str) -> Dict[str, Any]:
         """Build config_used info for response."""
         config = getattr(self.runtime_config, "config", None) or {}
         auth_config = getattr(self.runtime_config, "auth_config", None)
@@ -223,6 +262,8 @@ class FetchStatusChecker:
         return {
             "base_url": config.get("base_url"),
             "health_endpoint": health_endpoint,
+            "method": method,
+            "timeout_seconds": self.timeout_seconds,
             "auth_type": auth_type,
             "auth_resolved": bool(auth_config and getattr(auth_config, "token", None)),
             "auth_header_present": has_auth_header,
@@ -232,6 +273,7 @@ class FetchStatusChecker:
                 None
             ) if auth_config else None,
             "proxy_url": getattr(proxy_config, "proxy_url", None) if proxy_config else None,
+            "proxy_resolved": bool(proxy_config and getattr(proxy_config, "proxy_url", None)),
             "headers_count": len(pre_computed_headers),
         }
 
@@ -262,3 +304,55 @@ class FetchStatusChecker:
         if len(text) <= max_len:
             return text
         return text[:max_len] + "... (truncated)"
+
+    def _mask_header_value(self, key: str, value: str) -> str:
+        """Mask sensitive header values for security."""
+        sensitive_keys = {"authorization", "x-api-key", "api-key", "token", "secret"}
+        if key.lower() in sensitive_keys:
+            if len(value) <= 20:
+                return "****"
+            return f"{value[:20]}..."
+        return value
+
+    def _build_fetch_option_used(
+        self,
+        method: str,
+        full_url: str,
+        merged_headers: Dict[str, str],
+    ) -> Dict[str, Any]:
+        """Build fetch_option_used info for response.
+
+        Records the actual options passed to the HTTP client.
+        """
+        config = getattr(self.runtime_config, "config", None) or {}
+        proxy_config = getattr(self.runtime_config, "proxy_config", None)
+
+        # Mask sensitive headers
+        masked_headers = {
+            k: self._mask_header_value(k, str(v))
+            for k, v in merged_headers.items()
+        }
+
+        # Get proxy URL and mask it
+        proxy_url = None
+        if proxy_config:
+            raw_proxy = getattr(proxy_config, "proxy_url", None)
+            if raw_proxy:
+                # Mask credentials in proxy URL if present
+                from urllib.parse import urlparse
+                parsed = urlparse(raw_proxy)
+                if parsed.password:
+                    proxy_url = raw_proxy.replace(parsed.password, "****")
+                else:
+                    proxy_url = raw_proxy
+
+        return {
+            "method": method,
+            "url": full_url,
+            "timeout_seconds": self.timeout_seconds,
+            "headers": masked_headers,
+            "headers_count": len(merged_headers),
+            "follow_redirects": config.get("follow_redirects", True),
+            "proxy": proxy_url,
+            "verify_ssl": config.get("verify_ssl", True),
+        }

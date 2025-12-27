@@ -28,6 +28,7 @@ class FetchStatusResult:
     request: Optional[Dict[str, Any]] = None
     response: Optional[Dict[str, Any]] = None
     config_used: Optional[Dict[str, Any]] = None
+    fetch_option_used: Optional[Dict[str, Any]] = None
     error: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -44,6 +45,8 @@ class FetchStatusResult:
             result["response"] = self.response
         if self.config_used is not None:
             result["config_used"] = self.config_used
+        if self.fetch_option_used is not None:
+            result["fetch_option_used"] = self.fetch_option_used
         if self.error is not None:
             result["error"] = self.error
         return result

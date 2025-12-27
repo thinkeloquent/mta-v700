@@ -21,5 +21,6 @@ export interface FetchStatusResult {
     request?: Record<string, any>;
     response?: Record<string, any>;
     config_used?: Record<string, any>;
+    fetch_option_used?: Record<string, any>;
     error?: Record<string, any>;
 }

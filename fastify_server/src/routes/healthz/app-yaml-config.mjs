@@ -216,6 +216,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
           request: result.request,
           response: result.response,
           config_used: formattedConfig,
+          fetch_option_used: result.fetch_option_used,
           error: result.error,
         };
 
