@@ -15,7 +15,8 @@ export interface TemplateContext {
 export class ContextBuilder {
     static buildStartupContext(config: AppYamlConfig): TemplateContext {
         const loadResult = config.getLoadResult();
-        const rawAppConfig = (config as any)._config?.app || {};
+        // Use public API to access app config (was incorrectly using _config which doesn't exist)
+        const rawAppConfig = config.get<Record<string, any>>('app') || {};
 
         const appEnv = loadResult?.appEnv || 'dev';
 

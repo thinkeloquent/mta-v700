@@ -18,9 +18,11 @@ class ContextBuilder:
     def build_startup_context(config: AppYamlConfig) -> TemplateContext:
         ctx = TemplateContext()
         ctx.env = dict(os.environ)
-        
+
         # Get raw config for app info
-        raw_app_config = config.get('app') or {}
+        # Use get_all() first to ensure we have the full config, then extract app
+        all_config = config.get_all() if hasattr(config, 'get_all') else {}
+        raw_app_config = all_config.get('app') or config.get('app') or {}
         
         # Determine environment from load result
         load_result = config.get_load_result()
@@ -34,7 +36,7 @@ class ContextBuilder:
             'description': raw_app_config.get('description', ''),
             'environment': app_env
         }
-        ctx.config = config.get_all()
+        ctx.config = all_config
         return ctx
 
     @staticmethod
