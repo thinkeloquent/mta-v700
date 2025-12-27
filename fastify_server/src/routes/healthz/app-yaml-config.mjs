@@ -162,7 +162,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
     }
 
     fastify.get('/provider/:name/fetch/status', async (request, reply) => {
-      const { FetchStatusChecker } = await import('@internal/fetch-client');
+      const { ProviderClient, FetchStatus } = await import('@internal/fetch-client');
       const config = AppYamlConfig.getInstance();
       const name = request.params.name;
       const timeout = parseFloat(request.query.timeout) || 10.0;
@@ -173,6 +173,7 @@ export default async function appYamlConfigRoutes(fastify, opts) {
         return reply.code(403).send({ error: `Provider '${name}' not in allowlist` });
       }
 
+      let provider;
       try {
         const factory = new YamlConfigFactory(config);
         const runtimeConfig = await factory.computeAll(
@@ -197,14 +198,40 @@ export default async function appYamlConfigRoutes(fastify, opts) {
           };
         }
 
-        const checker = new FetchStatusChecker(
-          name,
-          runtimeConfig,
-          Math.min(timeout, 30.0),
-          endpoint
-        );
-
-        const result = await checker.check();
+        let result;
+        try {
+          provider = new ProviderClient(
+            name,
+            runtimeConfig,
+            {
+              timeoutSeconds: Math.min(timeout, 30.0),
+              endpointOverride: endpoint
+            }
+          );
+          result = await provider.checkHealth();
+        } catch (e) {
+          // Handle constructor validation errors or synchronous checks
+          // ProviderClient constructor throws if base_url is missing
+          const timestamp = new Date().toISOString();
+          return {
+            provider_name: name,
+            status: "config_error", // Match previous behavior
+            latency_ms: 0,
+            timestamp,
+            request: { method: 'UNKNOWN', url: 'UNKNOWN', timeout_seconds: 0 },
+            config_used: {
+              baseUrl: runtimeConfig.config.base_url,
+              // We can't easily get derived fields without provider logic, but this is sufficient for error
+            },
+            error: {
+              type: "ConfigError",
+              message: e.message
+            },
+            runtime_config: formatRuntimeConfig(runtimeConfig)
+          };
+        } finally {
+          if (provider) await provider.close();
+        }
 
         const formattedConfig = formatRuntimeConfig(runtimeConfig);
 

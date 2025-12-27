@@ -10,3 +10,4 @@ export * from "./client.js";
 export * from "./core/request.js";
 export * from "./auth/auth-handler.js";
 export * from "./health/index.js";
+export * from './provider/index.js';

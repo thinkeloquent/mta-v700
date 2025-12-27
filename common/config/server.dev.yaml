@@ -61,6 +61,7 @@ providers:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
     model: "gemini-2.0-flash"
     health_endpoint: "/models"
+    method: "POST"
     endpoint_api_key: null
     endpoint_auth_type: "bearer"         # bearer, basic, x-api-key, custom
     endpoint_auth_token_resolver: "request"        # static (default), startup, request

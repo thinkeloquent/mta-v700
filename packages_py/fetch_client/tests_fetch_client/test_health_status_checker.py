@@ -1,8 +1,8 @@
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, patch
 from fetch_client.health.status_checker import FetchStatusChecker
-from fetch_client.health.models import FetchStatus
+from fetch_client.health.models import FetchStatus, FetchStatusResult
 
 class MockRuntimeConfig:
     def __init__(self, config=None, auth_config=None, proxy_config=None, headers=None):
@@ -19,50 +19,40 @@ def base_runtime_config():
     )
 
 @pytest.mark.asyncio
-async def test_resolve_method_defaults_to_get(base_runtime_config):
-    checker = FetchStatusChecker("test-provider", base_runtime_config)
-    assert checker._resolve_method() == "GET"
+async def test_check_delegates_to_provider_client(base_runtime_config):
+    # Mock ProviderClient where it is defined
+    with patch("fetch_client.provider.provider_client.ProviderClient") as MockProvider:
+        mock_instance = MockProvider.return_value
+        expected_result = FetchStatusResult(
+            provider_name="test-provider",
+            status=FetchStatus.CONNECTED,
+            latency_ms=10.0,
+            timestamp="2024-01-01T00:00:00Z"
+        )
+        mock_instance.check_health = AsyncMock(return_value=expected_result)
+        mock_instance.close = AsyncMock()
+        mock_instance.options = MagicMock() # Simulate options access
+
+        checker = FetchStatusChecker("test-provider", base_runtime_config, timeout_seconds=5.0)
+        result = await checker.check()
+
+        assert result == expected_result
+        MockProvider.assert_called_once()
+        # Verify options were set
+        assert mock_instance.options.timeout_seconds == 5.0
+        mock_instance.check_health.assert_awaited_once()
+        mock_instance.close.assert_awaited_once()
 
 @pytest.mark.asyncio
-async def test_resolve_method_from_top_level(base_runtime_config):
-    base_runtime_config.config["method"] = "post"
-    checker = FetchStatusChecker("test-provider", base_runtime_config)
-    assert checker._resolve_method() == "POST"
+async def test_check_handles_config_error(base_runtime_config):
+    with patch("fetch_client.provider.provider_client.ProviderClient") as MockProvider:
+        # Simulate constructor raising ValueError (e.g. invalid config)
+        MockProvider.side_effect = ValueError("Invalid config")
+        
+        checker = FetchStatusChecker("test-provider", base_runtime_config)
+        result = await checker.check()
+        
+        assert result.status == FetchStatus.CONFIG_ERROR
+        assert result.error["type"] == "ConfigError"
+        assert "Invalid config" in result.error["message"]
 
-@pytest.mark.asyncio
-async def test_resolve_method_from_health_endpoint_dict(base_runtime_config):
-    base_runtime_config.config["health_endpoint"] = {"path": "/health", "method": "head"}
-    checker = FetchStatusChecker("test-provider", base_runtime_config)
-    assert checker._resolve_method() == "HEAD"
-    # Also verify health endpoint resolution works (this might fail currently)
-    assert checker._resolve_health_endpoint() == "/health"
-
-@pytest.mark.asyncio
-async def test_config_used_structure(base_runtime_config):
-    checker = FetchStatusChecker("test-provider", base_runtime_config)
-    config_used = checker._build_config_used("/health", "GET")
-    assert config_used["method"] == "GET"
-    assert config_used["timeout_seconds"] == 10.0
-    assert "proxy_resolved" in config_used
-
-@pytest.mark.asyncio
-async def test_fetch_option_used_masking(base_runtime_config):
-    checker = FetchStatusChecker("test-provider", base_runtime_config)
-    merged_headers = {"Authorization": "Bearer secret-token", "User-Agent": "test-agent"}
-    
-    options = checker._build_fetch_option_used("GET", "https://api.example.com/health", merged_headers)
-    
-    assert options["method"] == "GET"
-    assert options["headers"]["Authorization"] == "****"
-    assert options["headers"]["User-Agent"] == "test-agent"
-
-@pytest.mark.asyncio
-async def test_proxy_masking(base_runtime_config):
-    mock_proxy = MagicMock()
-    mock_proxy.proxy_url = "http://user:pass@proxy.com:8080"
-    base_runtime_config.proxy_config = mock_proxy
-    
-    checker = FetchStatusChecker("test-provider", base_runtime_config)
-    options = checker._build_fetch_option_used("GET", "url", {})
-    
-    assert options["proxy"] == "http://user:****@proxy.com:8080"

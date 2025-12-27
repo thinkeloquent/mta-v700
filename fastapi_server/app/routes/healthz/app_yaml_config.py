@@ -175,7 +175,7 @@ async def get_provider_fetch_status(
 
     Returns connection status, latency, and configuration details.
     """
-    from fetch_client.health import FetchStatusChecker
+    from typing import Optional
     from typing import Optional
 
     config = AppYamlConfig.get_instance()
@@ -211,15 +211,45 @@ async def get_provider_fetch_status(
                 "runtime_config": _format_runtime_config(runtime_config)
             }
 
-        # Execute health check
-        checker = FetchStatusChecker(
-            provider_name=name,
-            runtime_config=runtime_config,
-            timeout_seconds=min(timeout, 30.0),  # Cap at 30s
-            endpoint_override=endpoint,
-        )
+        # Execute health check using ProviderClient directly
+        try:
+            from fetch_client import ProviderClient, ProviderClientOptions
+            from datetime import datetime, timezone
+            
+            provider = ProviderClient(
+                provider_name=name,
+                runtime_config=runtime_config,
+                options=ProviderClientOptions(
+                    timeout_seconds=min(timeout, 30.0),
+                    endpoint_override=endpoint
+                )
+            )
+            
+            try:
+                result = await provider.check_health()
+            finally:
+                await provider.close()
 
-        result = await checker.check()
+        except ValueError as e:
+            # Handle validation errors (e.g. missing base_url)
+            timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            return {
+                "provider_name": name,
+                "status": "config_error",
+                "latency_ms": 0,
+                "timestamp": timestamp,
+                "request": {"method": "UNKNOWN", "url": "UNKNOWN", "timeout_seconds": 0},
+                "response": None,
+                "config_used": {
+                    "base_url": runtime_config.config.get("base_url") if hasattr(runtime_config, 'config') else None
+                },
+                "fetch_option_used": None,
+                "error": {
+                    "type": "ConfigError",
+                    "message": str(e)
+                },
+                 "runtime_config": _format_runtime_config(runtime_config)
+            }
 
         formatted_config = _format_runtime_config(runtime_config)
 
@@ -229,7 +259,7 @@ async def get_provider_fetch_status(
             "latency_ms": result.latency_ms,
             "timestamp": result.timestamp,
             "request": result.request,
-            "method": result.request.get("method"),  # Explicitly expose method
+            "method": result.request.get("method") if result.request else None,
             "response": result.response,
             "config_used": formatted_config,
             "fetch_option_used": result.fetch_option_used,
