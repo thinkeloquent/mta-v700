@@ -65,7 +65,9 @@ providers:
     endpoint_api_key: null
     endpoint_auth_type: "bearer"         # bearer, basic, x-api-key, custom
     endpoint_auth_token_resolver: "request"        # static (default), startup, request
-    proxy_url: false  # Disabled - no proxy running
+    # proxy_url: 'https://gemini.localhost'  # Disabled - no proxy running
+    # proxy_url: false  # Disabled - no proxy running
+    proxy_url: null  # Disabled - no proxy running
     client:
       # Override timeout for this provider only
       timeout_seconds: 120.0
@@ -78,7 +80,8 @@ providers:
     # Existing: env var substitution for null values
     overwrite_from_env:
       endpoint_api_key: ["GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY"]
-    # NEW: context-based template and function resolution
+      proxy_url: "GEMINI_PROXY_URL"
+
     overwrite_from_context:
       headers:
         X-App-Name: "{{app.name}}"

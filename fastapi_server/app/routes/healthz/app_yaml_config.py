@@ -188,6 +188,7 @@ async def get_provider_fetch_status(
             detail=f"Provider '{name}' not in allowlist"
         )
 
+    runtime_config = None
     try:
         # Get runtime config (reuse existing logic)
         factory = YamlConfigFactory(config)
@@ -198,15 +199,69 @@ async def get_provider_fetch_status(
 
         # Check for auth errors
         if runtime_config.auth_error:
+            from datetime import datetime, timezone
+            timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+            # Build fetch_option_used manually for error case
+            pre_computed_headers = runtime_config.headers or {}
+            config_headers = runtime_config.config.get("headers") or {}
+            merged_headers = {**config_headers, **pre_computed_headers}
+
+            # Mask sensitive headers
+            sensitive_keys = {"authorization", "x-api-key", "api-key", "token", "secret"}
+            masked_headers = {}
+            for k, v in merged_headers.items():
+                if k.lower() in sensitive_keys:
+                    masked_headers[k] = v[:20] + "..." if v and len(v) > 20 else "****"
+                else:
+                    masked_headers[k] = v
+
+            health_endpoint_config = runtime_config.config.get("health_endpoint")
+            method = "GET"
+            health_endpoint = "UNKNOWN"
+            if isinstance(health_endpoint_config, dict):
+                method = health_endpoint_config.get("method", runtime_config.config.get("method", "GET"))
+                health_endpoint = health_endpoint_config.get("path") or health_endpoint_config.get("endpoint") or "UNKNOWN"
+            elif health_endpoint_config:
+                health_endpoint = str(health_endpoint_config)
+                method = runtime_config.config.get("method", "GET")
+
             return {
                 "provider_name": name,
                 "status": "config_error",
+                "latency_ms": 0,
+                "timestamp": timestamp,
+                "request": {
+                    "method": method,
+                    "url": runtime_config.config.get("base_url"),
+                    "timeout_seconds": min(timeout, 30.0)
+                },
                 "error": {
                     "type": "AuthConfigError",
                     "message": str(runtime_config.auth_error),
                 },
                 "config_used": {
                     "base_url": runtime_config.config.get("base_url"),
+                    "health_endpoint": health_endpoint,
+                    "method": method,
+                    "timeout_seconds": min(timeout, 30.0),
+                    "auth_type": getattr(runtime_config.auth_config, "type", None) if runtime_config.auth_config else None,
+                    "auth_resolved": False,
+                    "auth_header_present": bool(merged_headers.get("Authorization") or merged_headers.get("authorization")),
+                    "is_placeholder": getattr(getattr(runtime_config.auth_config, "resolution", None), "is_placeholder", None) if runtime_config.auth_config else None,
+                    "proxy_url": getattr(runtime_config.proxy_config, "proxy_url", None) if runtime_config.proxy_config else None,
+                    "proxy_resolved": bool(getattr(runtime_config.proxy_config, "proxy_url", None) if runtime_config.proxy_config else None),
+                    "headers_count": len(merged_headers)
+                },
+                "fetch_option_used": {
+                    "method": method,
+                    "url": runtime_config.config.get("base_url"),
+                    "timeout_seconds": min(timeout, 30.0),
+                    "headers": masked_headers,
+                    "headers_count": len(merged_headers),
+                    "follow_redirects": runtime_config.config.get("follow_redirects", True),
+                    "proxy": getattr(runtime_config.proxy_config, "proxy_url", None) if runtime_config.proxy_config else None,
+                    "verify_ssl": runtime_config.config.get("verify_ssl", True)
                 },
                 "runtime_config": _format_runtime_config(runtime_config)
             }
@@ -233,22 +288,71 @@ async def get_provider_fetch_status(
         except ValueError as e:
             # Handle validation errors (e.g. missing base_url)
             timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+            # Build fetch_option_used manually for error case
+            pre_computed_headers = runtime_config.headers or {} if hasattr(runtime_config, 'headers') else {}
+            config_headers = runtime_config.config.get("headers") or {} if hasattr(runtime_config, 'config') else {}
+            merged_headers = {**config_headers, **pre_computed_headers}
+
+            # Mask sensitive headers
+            sensitive_keys = {"authorization", "x-api-key", "api-key", "token", "secret"}
+            masked_headers = {}
+            for k, v in merged_headers.items():
+                if k.lower() in sensitive_keys:
+                    masked_headers[k] = v[:20] + "..." if v and len(v) > 20 else "****"
+                else:
+                    masked_headers[k] = v
+
+            config = runtime_config.config if hasattr(runtime_config, 'config') else {}
+            health_endpoint_config = config.get("health_endpoint") if config else None
+            method = "GET"
+            health_endpoint = "UNKNOWN"
+            if isinstance(health_endpoint_config, dict):
+                method = health_endpoint_config.get("method", config.get("method", "GET"))
+                health_endpoint = health_endpoint_config.get("path") or health_endpoint_config.get("endpoint") or "UNKNOWN"
+            elif health_endpoint_config:
+                health_endpoint = str(health_endpoint_config)
+                method = config.get("method", "GET")
+
             return {
                 "provider_name": name,
                 "status": "config_error",
                 "latency_ms": 0,
                 "timestamp": timestamp,
-                "request": {"method": "UNKNOWN", "url": "UNKNOWN", "timeout_seconds": 0},
+                "request": {
+                    "method": method,
+                    "url": config.get("base_url") or "UNKNOWN",
+                    "timeout_seconds": min(timeout, 30.0)
+                },
                 "response": None,
                 "config_used": {
-                    "base_url": runtime_config.config.get("base_url") if hasattr(runtime_config, 'config') else None
+                    "base_url": config.get("base_url") or "UNKNOWN",
+                    "health_endpoint": health_endpoint,
+                    "method": method,
+                    "timeout_seconds": min(timeout, 30.0),
+                    "auth_type": getattr(runtime_config.auth_config, "type", None) if hasattr(runtime_config, 'auth_config') and runtime_config.auth_config else None,
+                    "auth_resolved": False,
+                    "auth_header_present": bool(merged_headers.get("Authorization") or merged_headers.get("authorization")),
+                    "is_placeholder": None,
+                    "proxy_url": getattr(runtime_config.proxy_config, "proxy_url", None) if hasattr(runtime_config, 'proxy_config') and runtime_config.proxy_config else None,
+                    "proxy_resolved": bool(getattr(runtime_config.proxy_config, "proxy_url", None) if hasattr(runtime_config, 'proxy_config') and runtime_config.proxy_config else None),
+                    "headers_count": len(merged_headers)
                 },
-                "fetch_option_used": None,
+                "fetch_option_used": {
+                    "method": method,
+                    "url": config.get("base_url") or "UNKNOWN",
+                    "timeout_seconds": min(timeout, 30.0),
+                    "headers": masked_headers,
+                    "headers_count": len(merged_headers),
+                    "follow_redirects": config.get("follow_redirects", True),
+                    "proxy": getattr(runtime_config.proxy_config, "proxy_url", None) if hasattr(runtime_config, 'proxy_config') and runtime_config.proxy_config else None,
+                    "verify_ssl": config.get("verify_ssl", True)
+                },
                 "error": {
                     "type": "ConfigError",
                     "message": str(e)
                 },
-                 "runtime_config": _format_runtime_config(runtime_config)
+                "runtime_config": _format_runtime_config(runtime_config)
             }
 
         formatted_config = _format_runtime_config(runtime_config)
@@ -267,10 +371,110 @@ async def get_provider_fetch_status(
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Health check failed: {str(e)}"
-        )
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+        # Build fetch_option_used if runtime_config is available
+        if runtime_config and hasattr(runtime_config, 'config') and runtime_config.config:
+            config_data = runtime_config.config
+            pre_computed_headers = runtime_config.headers or {} if hasattr(runtime_config, 'headers') else {}
+            config_headers = config_data.get("headers") or {}
+            merged_headers = {**config_headers, **pre_computed_headers}
+
+            # Mask sensitive headers
+            sensitive_keys = {"authorization", "x-api-key", "api-key", "token", "secret"}
+            masked_headers = {}
+            for k, v in merged_headers.items():
+                if k.lower() in sensitive_keys:
+                    masked_headers[k] = v[:20] + "..." if v and len(v) > 20 else "****"
+                else:
+                    masked_headers[k] = v
+
+            health_endpoint_config = config_data.get("health_endpoint")
+            method = "GET"
+            health_endpoint = "UNKNOWN"
+            if isinstance(health_endpoint_config, dict):
+                method = health_endpoint_config.get("method", config_data.get("method", "GET"))
+                health_endpoint = health_endpoint_config.get("path") or health_endpoint_config.get("endpoint") or "UNKNOWN"
+            elif health_endpoint_config:
+                health_endpoint = str(health_endpoint_config)
+                method = config_data.get("method", "GET")
+
+            return {
+                "provider_name": name,
+                "status": "error",
+                "latency_ms": 0,
+                "timestamp": timestamp,
+                "request": {
+                    "method": method,
+                    "url": config_data.get("base_url") or "UNKNOWN",
+                    "timeout_seconds": min(timeout, 30.0)
+                },
+                "error": {
+                    "type": type(e).__name__,
+                    "message": str(e)
+                },
+                "config_used": {
+                    "base_url": config_data.get("base_url") or "UNKNOWN",
+                    "health_endpoint": health_endpoint,
+                    "method": method,
+                    "timeout_seconds": min(timeout, 30.0),
+                    "auth_type": getattr(runtime_config.auth_config, "type", None) if hasattr(runtime_config, 'auth_config') and runtime_config.auth_config else None,
+                    "auth_resolved": bool(getattr(runtime_config.auth_config, "token", None) if hasattr(runtime_config, 'auth_config') and runtime_config.auth_config else None),
+                    "auth_header_present": bool(merged_headers.get("Authorization") or merged_headers.get("authorization")),
+                    "is_placeholder": getattr(getattr(runtime_config.auth_config, "resolution", None), "is_placeholder", None) if hasattr(runtime_config, 'auth_config') and runtime_config.auth_config else None,
+                    "proxy_url": getattr(runtime_config.proxy_config, "proxy_url", None) if hasattr(runtime_config, 'proxy_config') and runtime_config.proxy_config else None,
+                    "proxy_resolved": bool(getattr(runtime_config.proxy_config, "proxy_url", None) if hasattr(runtime_config, 'proxy_config') and runtime_config.proxy_config else None),
+                    "headers_count": len(merged_headers)
+                },
+                "fetch_option_used": {
+                    "method": method,
+                    "url": config_data.get("base_url") or "UNKNOWN",
+                    "timeout_seconds": min(timeout, 30.0),
+                    "headers": masked_headers,
+                    "headers_count": len(merged_headers),
+                    "follow_redirects": config_data.get("follow_redirects", True),
+                    "proxy": getattr(runtime_config.proxy_config, "proxy_url", None) if hasattr(runtime_config, 'proxy_config') and runtime_config.proxy_config else None,
+                    "verify_ssl": config_data.get("verify_ssl", True)
+                },
+                "runtime_config": _format_runtime_config(runtime_config)
+            }
+
+        # Fallback if runtime_config not available
+        return {
+            "provider_name": name,
+            "status": "error",
+            "latency_ms": 0,
+            "timestamp": timestamp,
+            "request": {"method": "UNKNOWN", "url": "UNKNOWN", "timeout_seconds": min(timeout, 30.0)},
+            "error": {
+                "type": type(e).__name__,
+                "message": str(e)
+            },
+            "config_used": {
+                "base_url": "UNKNOWN",
+                "health_endpoint": "UNKNOWN",
+                "method": "UNKNOWN",
+                "timeout_seconds": min(timeout, 30.0),
+                "auth_type": None,
+                "auth_resolved": False,
+                "auth_header_present": False,
+                "is_placeholder": None,
+                "proxy_url": None,
+                "proxy_resolved": False,
+                "headers_count": 0
+            },
+            "fetch_option_used": {
+                "method": "UNKNOWN",
+                "url": "UNKNOWN",
+                "timeout_seconds": min(timeout, 30.0),
+                "headers": {},
+                "headers_count": 0,
+                "follow_redirects": True,
+                "proxy": None,
+                "verify_ssl": True
+            }
+        }
 
 @router.get("/providers")
 async def list_providers():

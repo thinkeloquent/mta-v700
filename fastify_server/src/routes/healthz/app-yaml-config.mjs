@@ -174,9 +174,10 @@ export default async function appYamlConfigRoutes(fastify, opts) {
       }
 
       let provider;
+      let runtimeConfig = null;
       try {
         const factory = new YamlConfigFactory(config);
-        const runtimeConfig = await factory.computeAll(
+        runtimeConfig = await factory.computeAll(
           `providers.${name}`,
           undefined,
           request
@@ -184,15 +185,58 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
         // Check for auth errors
         if (runtimeConfig.authError) {
+          // Build fetch_option_used manually for error case
+          const preComputedHeaders = runtimeConfig.headers || {};
+          const configHeaders = runtimeConfig.config.headers || {};
+          const mergedHeaders = { ...configHeaders, ...preComputedHeaders };
+
+          // Mask sensitive headers
+          const maskedHeaders = {};
+          for (const [k, v] of Object.entries(mergedHeaders)) {
+            const lower = k.toLowerCase();
+            if (['authorization', 'x-api-key', 'api-key', 'token', 'secret'].includes(lower)) {
+              maskedHeaders[k] = v && v.length > 20 ? `${v.substring(0, 20)}...` : '****';
+            } else {
+              maskedHeaders[k] = v;
+            }
+          }
+
           return {
             provider_name: name,
             status: "config_error",
+            latency_ms: 0,
+            timestamp: new Date().toISOString(),
+            request: {
+              method: runtimeConfig.config.health_endpoint?.method || runtimeConfig.config.method || 'GET',
+              url: runtimeConfig.config.base_url,
+              timeout_seconds: Math.min(timeout, 30.0)
+            },
             error: {
               type: "AuthConfigError",
               message: String(runtimeConfig.authError),
             },
             config_used: {
               base_url: runtimeConfig.config.base_url,
+              health_endpoint: runtimeConfig.config.health_endpoint?.path || runtimeConfig.config.health_endpoint || 'UNKNOWN',
+              method: runtimeConfig.config.health_endpoint?.method || runtimeConfig.config.method || 'GET',
+              timeout_seconds: Math.min(timeout, 30.0),
+              auth_type: runtimeConfig.authConfig?.type || null,
+              auth_resolved: false,
+              auth_header_present: !!mergedHeaders['Authorization'] || !!mergedHeaders['authorization'],
+              is_placeholder: runtimeConfig.authConfig?.resolution?.isPlaceholder ?? null,
+              proxy_url: runtimeConfig.proxyConfig?.proxyUrl || null,
+              proxy_resolved: !!runtimeConfig.proxyConfig?.proxyUrl,
+              headers_count: Object.keys(mergedHeaders).length
+            },
+            fetch_option_used: {
+              method: runtimeConfig.config.health_endpoint?.method || runtimeConfig.config.method || 'GET',
+              url: runtimeConfig.config.base_url,
+              timeout_seconds: Math.min(timeout, 30.0),
+              headers: maskedHeaders,
+              headers_count: Object.keys(mergedHeaders).length,
+              follow_redirects: runtimeConfig.config.follow_redirects ?? true,
+              proxy: runtimeConfig.proxyConfig?.proxyUrl || null,
+              verify_ssl: runtimeConfig.config.verify_ssl ?? true
             },
             runtime_config: formatRuntimeConfig(runtimeConfig)
           };
@@ -213,15 +257,55 @@ export default async function appYamlConfigRoutes(fastify, opts) {
           // Handle constructor validation errors or synchronous checks
           // ProviderClient constructor throws if base_url is missing
           const timestamp = new Date().toISOString();
+
+          // Build fetch_option_used manually for error case
+          const preComputedHeaders = runtimeConfig.headers || {};
+          const configHeaders = runtimeConfig.config?.headers || {};
+          const mergedHeaders = { ...configHeaders, ...preComputedHeaders };
+
+          // Mask sensitive headers
+          const maskedHeaders = {};
+          for (const [k, v] of Object.entries(mergedHeaders)) {
+            const lower = k.toLowerCase();
+            if (['authorization', 'x-api-key', 'api-key', 'token', 'secret'].includes(lower)) {
+              maskedHeaders[k] = v && v.length > 20 ? `${v.substring(0, 20)}...` : '****';
+            } else {
+              maskedHeaders[k] = v;
+            }
+          }
+
           return {
             provider_name: name,
-            status: "config_error", // Match previous behavior
+            status: "config_error",
             latency_ms: 0,
             timestamp,
-            request: { method: 'UNKNOWN', url: 'UNKNOWN', timeout_seconds: 0 },
+            request: {
+              method: runtimeConfig.config?.health_endpoint?.method || runtimeConfig.config?.method || 'GET',
+              url: runtimeConfig.config?.base_url || 'UNKNOWN',
+              timeout_seconds: Math.min(timeout, 30.0)
+            },
             config_used: {
-              baseUrl: runtimeConfig.config.base_url,
-              // We can't easily get derived fields without provider logic, but this is sufficient for error
+              base_url: runtimeConfig.config?.base_url || 'UNKNOWN',
+              health_endpoint: runtimeConfig.config?.health_endpoint?.path || runtimeConfig.config?.health_endpoint || 'UNKNOWN',
+              method: runtimeConfig.config?.health_endpoint?.method || runtimeConfig.config?.method || 'GET',
+              timeout_seconds: Math.min(timeout, 30.0),
+              auth_type: runtimeConfig.authConfig?.type || null,
+              auth_resolved: false,
+              auth_header_present: !!mergedHeaders['Authorization'] || !!mergedHeaders['authorization'],
+              is_placeholder: null,
+              proxy_url: runtimeConfig.proxyConfig?.proxyUrl || null,
+              proxy_resolved: !!runtimeConfig.proxyConfig?.proxyUrl,
+              headers_count: Object.keys(mergedHeaders).length
+            },
+            fetch_option_used: {
+              method: runtimeConfig.config?.health_endpoint?.method || runtimeConfig.config?.method || 'GET',
+              url: runtimeConfig.config?.base_url || 'UNKNOWN',
+              timeout_seconds: Math.min(timeout, 30.0),
+              headers: maskedHeaders,
+              headers_count: Object.keys(mergedHeaders).length,
+              follow_redirects: runtimeConfig.config?.follow_redirects ?? true,
+              proxy: runtimeConfig.proxyConfig?.proxyUrl || null,
+              verify_ssl: runtimeConfig.config?.verify_ssl ?? true
             },
             error: {
               type: "ConfigError",
@@ -249,7 +333,105 @@ export default async function appYamlConfigRoutes(fastify, opts) {
 
       } catch (err) {
         request.log.error(err);
-        return reply.code(500).send({ error: `Health check failed: ${err.message}` });
+
+        // Build fetch_option_used if runtimeConfig is available
+        const timestamp = new Date().toISOString();
+
+        if (runtimeConfig && runtimeConfig.config) {
+          const preComputedHeaders = runtimeConfig.headers || {};
+          const configHeaders = runtimeConfig.config.headers || {};
+          const mergedHeaders = { ...configHeaders, ...preComputedHeaders };
+
+          // Mask sensitive headers
+          const maskedHeaders = {};
+          for (const [k, v] of Object.entries(mergedHeaders)) {
+            const lower = k.toLowerCase();
+            if (['authorization', 'x-api-key', 'api-key', 'token', 'secret'].includes(lower)) {
+              maskedHeaders[k] = v && v.length > 20 ? `${v.substring(0, 20)}...` : '****';
+            } else {
+              maskedHeaders[k] = v;
+            }
+          }
+
+          const method = runtimeConfig.config.health_endpoint?.method || runtimeConfig.config.method || 'GET';
+          const healthEndpoint = runtimeConfig.config.health_endpoint?.path || runtimeConfig.config.health_endpoint || 'UNKNOWN';
+
+          return reply.code(500).send({
+            provider_name: name,
+            status: "error",
+            latency_ms: 0,
+            timestamp,
+            request: {
+              method,
+              url: runtimeConfig.config.base_url || 'UNKNOWN',
+              timeout_seconds: Math.min(timeout, 30.0)
+            },
+            error: {
+              type: err.name || 'Error',
+              message: err.message
+            },
+            config_used: {
+              base_url: runtimeConfig.config.base_url || 'UNKNOWN',
+              health_endpoint: healthEndpoint,
+              method,
+              timeout_seconds: Math.min(timeout, 30.0),
+              auth_type: runtimeConfig.authConfig?.type || null,
+              auth_resolved: !!runtimeConfig.authConfig?.token,
+              auth_header_present: !!mergedHeaders['Authorization'] || !!mergedHeaders['authorization'],
+              is_placeholder: runtimeConfig.authConfig?.resolution?.isPlaceholder ?? null,
+              proxy_url: runtimeConfig.proxyConfig?.proxyUrl || null,
+              proxy_resolved: !!runtimeConfig.proxyConfig?.proxyUrl,
+              headers_count: Object.keys(mergedHeaders).length
+            },
+            fetch_option_used: {
+              method,
+              url: runtimeConfig.config.base_url || 'UNKNOWN',
+              timeout_seconds: Math.min(timeout, 30.0),
+              headers: maskedHeaders,
+              headers_count: Object.keys(mergedHeaders).length,
+              follow_redirects: runtimeConfig.config.follow_redirects ?? true,
+              proxy: runtimeConfig.proxyConfig?.proxyUrl || null,
+              verify_ssl: runtimeConfig.config.verify_ssl ?? true
+            },
+            runtime_config: formatRuntimeConfig(runtimeConfig)
+          });
+        }
+
+        // Fallback if runtimeConfig not available
+        return reply.code(500).send({
+          provider_name: name,
+          status: "error",
+          latency_ms: 0,
+          timestamp,
+          request: { method: 'UNKNOWN', url: 'UNKNOWN', timeout_seconds: Math.min(timeout, 30.0) },
+          error: {
+            type: err.name || 'Error',
+            message: err.message
+          },
+          config_used: {
+            base_url: 'UNKNOWN',
+            health_endpoint: 'UNKNOWN',
+            method: 'UNKNOWN',
+            timeout_seconds: Math.min(timeout, 30.0),
+            auth_type: null,
+            auth_resolved: false,
+            auth_header_present: false,
+            is_placeholder: null,
+            proxy_url: null,
+            proxy_resolved: false,
+            headers_count: 0
+          },
+          fetch_option_used: {
+            method: 'UNKNOWN',
+            url: 'UNKNOWN',
+            timeout_seconds: Math.min(timeout, 30.0),
+            headers: {},
+            headers_count: 0,
+            follow_redirects: true,
+            proxy: null,
+            verify_ssl: true
+          }
+        });
       }
     });
 

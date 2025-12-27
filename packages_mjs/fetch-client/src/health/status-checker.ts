@@ -41,27 +41,27 @@ export class FetchStatusChecker {
         timestamp,
         request: { method: 'UNKNOWN', url: 'UNKNOWN', timeout_seconds: 0 },
         config_used: {
-          baseUrl: this.runtime_config.config.base_url || '',
-          healthEndpoint: 'UNKNOWN',
+          base_url: this.runtime_config.config.base_url || '',
+          health_endpoint: 'UNKNOWN',
           method: 'UNKNOWN',
-          timeoutSeconds: 0,
-          authType: null,
-          authResolved: false,
-          authHeaderPresent: false,
-          isPlaceholder: null,
-          proxyUrl: null,
-          proxyResolved: false,
-          headersCount: 0
+          timeout_seconds: 0,
+          auth_type: null,
+          auth_resolved: false,
+          auth_header_present: false,
+          is_placeholder: null,
+          proxy_url: null,
+          proxy_resolved: false,
+          headers_count: 0
         },
         fetch_option_used: {
           method: 'UNKNOWN',
           url: 'UNKNOWN',
-          timeoutSeconds: 0,
+          timeout_seconds: 0,
           headers: {},
-          headersCount: 0,
-          followRedirects: false,
+          headers_count: 0,
+          follow_redirects: false,
           proxy: null,
-          verifySsl: false
+          verify_ssl: false
         },
         error: {
           type: 'ConfigError',

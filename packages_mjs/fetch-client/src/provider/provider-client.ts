@@ -21,28 +21,28 @@ export interface ProviderClientOptions {
 }
 
 export interface ConfigUsedInfo {
-    baseUrl: string;
-    healthEndpoint: string;
+    base_url: string;
+    health_endpoint: string;
     method: string;
-    timeoutSeconds: number;
-    authType: string | null;
-    authResolved: boolean;
-    authHeaderPresent: boolean;
-    isPlaceholder: boolean | null;
-    proxyUrl: string | null;
-    proxyResolved: boolean;
-    headersCount: number;
+    timeout_seconds: number;
+    auth_type: string | null;
+    auth_resolved: boolean;
+    auth_header_present: boolean;
+    is_placeholder: boolean | null;
+    proxy_url: string | null;
+    proxy_resolved: boolean;
+    headers_count: number;
 }
 
 export interface FetchOptionUsedInfo {
     method: string;
     url: string;
-    timeoutSeconds: number;
+    timeout_seconds: number;
     headers: Record<string, string>;
-    headersCount: number;
-    followRedirects: boolean;
+    headers_count: number;
+    follow_redirects: boolean;
     proxy: string | null;
-    verifySsl: boolean;
+    verify_ssl: boolean;
 }
 
 export class ProviderClient {
@@ -376,17 +376,17 @@ export class ProviderClient {
         );
 
         return {
-            baseUrl: this.runtimeConfig.config.base_url,
-            healthEndpoint: healthEndpoint,
+            base_url: this.runtimeConfig.config.base_url,
+            health_endpoint: healthEndpoint,
             method,
-            timeoutSeconds: this.timeoutSeconds,
-            authType: authTypeStr || null,
-            authResolved: Boolean(auth && auth.token),
-            authHeaderPresent: hasAuthHeader,
-            isPlaceholder: auth?.resolution?.isPlaceholder ?? null,
-            proxyUrl: proxy?.proxyUrl ?? null,
-            proxyResolved: Boolean(proxy && proxy.proxyUrl),
-            headersCount: Object.keys(this._mergedHeaders).length,
+            timeout_seconds: this.timeoutSeconds,
+            auth_type: authTypeStr || null,
+            auth_resolved: Boolean(auth && auth.token),
+            auth_header_present: hasAuthHeader,
+            is_placeholder: auth?.resolution?.isPlaceholder ?? null,
+            proxy_url: proxy?.proxyUrl ?? null,
+            proxy_resolved: Boolean(proxy && proxy.proxyUrl),
+            headers_count: Object.keys(this._mergedHeaders).length,
         };
     }
 
@@ -422,12 +422,12 @@ export class ProviderClient {
         return {
             method,
             url: fullUrl,
-            timeoutSeconds: this.timeoutSeconds,
+            timeout_seconds: this.timeoutSeconds,
             headers: maskedHeaders,
-            headersCount: Object.keys(mergedHeaders).length,
-            followRedirects: config.follow_redirects ?? true,
+            headers_count: Object.keys(mergedHeaders).length,
+            follow_redirects: config.follow_redirects ?? true,
             proxy: proxyUrl,
-            verifySsl: config.verify_ssl ?? true,
+            verify_ssl: config.verify_ssl ?? true,
         };
     }
 

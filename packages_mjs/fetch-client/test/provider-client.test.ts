@@ -179,10 +179,10 @@ describe('ProviderClient', () => {
             const provider = new ProviderClient('test', validRuntimeConfig);
             const info = provider.getConfigUsed();
 
-            expect(info.baseUrl).toBe('https://api.example.com');
-            expect(info.healthEndpoint).toBe('/health'); // resolved
-            expect(info.authResolved).toBe(true);
-            expect(info.authHeaderPresent).toBe(true);
+            expect(info.base_url).toBe('https://api.example.com');
+            expect(info.health_endpoint).toBe('/health'); // resolved
+            expect(info.auth_resolved).toBe(true);
+            expect(info.auth_header_present).toBe(true);
         });
 
         it('getFetchOptionUsed should mask sensitive headers', () => {
